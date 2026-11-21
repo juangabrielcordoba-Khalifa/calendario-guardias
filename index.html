@@ -249,7 +249,8 @@
         let scheduleData = [];
         let workersList = [];
         let activeTab = 'individual';
-        let currentSheetsUrl = localStorage.getItem('sheets_csv_url') || '';
+        const DEFAULT_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTKva3cxdq6FBR6yGcrjpGBZERTGEXQbd03xWipLkjtacsAKCX9MOOwwt92bKhtZ5HRA7r4feBRiFAY/pub?gid=599949315&single=true&output=csv';
+        let currentSheetsUrl = localStorage.getItem('sheets_csv_url') || DEFAULT_SHEETS_URL;
 
         // Nombres de los meses
         const monthNames = [
