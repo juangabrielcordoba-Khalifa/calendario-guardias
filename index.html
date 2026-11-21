@@ -155,21 +155,42 @@
                 </div>
 
                 <!-- Métricas -->
-                <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                        <span class="block text-[10px] font-bold text-blue-600 uppercase">Horas Totales</span>
-                        <span id="statWorkedHours" class="text-xl font-extrabold text-blue-900">0h</span>
-                        <span class="block text-[9px] text-blue-700 mt-0.5">(Incluye 5,23h / V)</span>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
+                    <!-- 1. Horas Totales Mes -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                        <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-wider">Horas Totales</span>
+                        <span id="statWorkedHours" class="text-lg font-extrabold text-blue-900 my-0.5">0h</span>
+                        <span class="block text-[9px] text-blue-700 font-medium">(Incluye 5,23h / V)</span>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                        <span class="block text-[10px] font-bold text-amber-600 uppercase">Vacaciones</span>
-                        <span id="statVacationDays" class="text-xl font-extrabold text-amber-900">0d</span>
+
+                    <!-- 2. Horas Extra Mes -->
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                        <span class="block text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Horas Extra</span>
+                        <span id="statExtraHours" class="text-lg font-extrabold text-emerald-900 my-0.5">0h</span>
+                        <span class="block text-[9px] text-emerald-700 font-medium">(Exceso > 162h)</span>
                     </div>
-                    <div class="bg-slate-100 border border-slate-200 rounded-lg p-3 text-center">
-                        <span class="block text-[10px] font-bold text-slate-600 uppercase">Servicios</span>
-                        <span id="statServiceDays" class="text-xl font-extrabold text-slate-800">0</span>
+
+                    <!-- 3. Vacaciones Mes -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                        <span class="block text-[10px] font-bold text-amber-600 uppercase tracking-wider">Vacaciones Mes</span>
+                        <span id="statVacationDays" class="text-lg font-extrabold text-amber-900 my-0.5">0d</span>
+                        <span class="block text-[9px] text-amber-700 font-medium">Disfrutadas este mes</span>
                     </div>
-                </div>
+
+                    <!-- 4. Vacaciones Año -->
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                        <span class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Vacaciones Año</span>
+                        <span id="statAnnualVacation" class="text-lg font-extrabold text-indigo-900 my-0.5">0 / 31</span>
+                        <span id="statAnnualVacationSub" class="block text-[9px] text-indigo-700 font-medium">Solicitadas 0 | Faltan 31</span>
+                    </div>
+
+                    <!-- 5. Servicios Mes -->
+                    <div class="bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                        <span class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">Servicios Mes</span>
+                        <span id="statServiceDays" class="text-lg font-extrabold text-slate-800 my-0.5">0</span>
+                        <span class="block text-[9px] text-slate-500 font-medium">Días de guardia</span>
+                    </div>
+                </div></div>
             </div>
 
             <!-- Calendario Estructurado de Lunes a Domingo -->
@@ -1367,7 +1388,7 @@
         // --- RENDER VISTA INDIVIDUAL (LUNES A DOMINGO + COLORES + 5,23h POR V) ---
         function renderIndividualView() {
             const selectedWorker = document.getElementById('workerSelect').value || workersList[0];
-            const selectedMonth = parseInt(document.getElementById('monthSelect').value);
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
 
             document.getElementById('employeeNameTitle').textContent = selectedWorker || "Empleado";
             document.getElementById('calendarMonthTitle').textContent = `${monthNames[selectedMonth - 1]} 2027`;
@@ -1458,15 +1479,41 @@
             }
 
             const totalComputedHours = workedHoursSum + (totalVacationDays * 5.23);
+            const totalHoursFormatted = Math.round(totalComputedHours * 100) / 100;
 
-            document.getElementById('statWorkedHours').textContent = `${totalComputedHours.toFixed(2).replace('.00', '')}h`;
+            // 1. Horas Totales Mes
+            document.getElementById('statWorkedHours').textContent = `${totalHoursFormatted}h`;
+
+            // 2. Horas Extra (Exceso sobre 162h al mes)
+            let extraHours = totalComputedHours > 162 ? (totalComputedHours - 162) : 0;
+            let extraHoursFormatted = Math.round(extraHours * 100) / 100;
+            document.getElementById('statExtraHours').textContent = `${extraHoursFormatted}h`;
+
+            // 3. Vacaciones Mes
             document.getElementById('statVacationDays').textContent = `${totalVacationDays}d`;
+
+            // 4. Vacaciones Año (31 días al año)
+            let annualVacationTaken = 0;
+            scheduleData.forEach(item => {
+                if (item.worker === selectedWorker) {
+                    for (let d in item.days) {
+                        if (item.days[d] && item.days[d].isVacation) {
+                            annualVacationTaken++;
+                        }
+                    }
+                }
+            });
+            let annualVacationRemaining = Math.max(0, 31 - annualVacationTaken);
+            document.getElementById('statAnnualVacation').textContent = `${annualVacationTaken} / 31`;
+            document.getElementById('statAnnualVacationSub').textContent = `Solicitadas ${annualVacationTaken} | Faltan ${annualVacationRemaining}`;
+
+            // 5. Servicios Mes
             document.getElementById('statServiceDays').textContent = `${totalServiceDays}`;
         }
 
         // --- RENDER VISTA CUADRANTE DE EQUIPO ---
         function renderTeamView() {
-            const selectedMonth = parseInt(document.getElementById('monthSelect').value);
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
             const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
 
             document.getElementById('teamTableTitle').textContent = `Cuadrante General - ${monthNames[selectedMonth - 1]} 2027`;
@@ -1482,7 +1529,7 @@
                 const letter = dayLetters[date.getDay()];
                 
                 const th = document.createElement('th');
-                th.className = "p-1.5 min-w-[36px] border-r border-slate-200 text-center";
+                th.className = "p-1.5 min-w-[65px] border-r border-slate-200 text-center";
                 
                 if (dayType === 'holiday') {
                     th.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
@@ -1516,7 +1563,7 @@
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayType = getDayType(2027, selectedMonth, day);
                     const td = document.createElement('td');
-                    td.className = "p-1.5 border-r border-slate-200 font-medium text-center";
+                    td.className = "p-1 border-r border-slate-200 font-bold text-[10px] text-center whitespace-nowrap min-w-[65px]";
 
                     if (dayType === 'holiday') td.classList.add('bg-red-50/40');
                     else if (dayType === 'weekend') td.classList.add('bg-purple-50/30');
@@ -1528,7 +1575,7 @@
                             td.textContent = "V";
                         } else {
                             td.className += " bg-blue-100 text-blue-900 font-bold shadow-xs";
-                            td.textContent = dayData.hours ? `${dayData.hours}h` : "T";
+                            td.textContent = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
                             dailyHoursSums[day] += (dayData.hours || 0);
                         }
                     } else {
