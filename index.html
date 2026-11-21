@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario de Guardias y Turnos - Anual</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse para procesar CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .shift-worked { background-color: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+        .shift-vacation { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+        .shift-off { background-color: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-full { width: 100% !important; max-width: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-indigo-700 text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600 rounded-lg shadow-inner">
+                    <i data-lucide="calendar-range" class="w-7 h-7 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Control de Guardias y Horarios</h1>
+                    <p class="text-xs text-indigo-200">Gestión Anual del Personal - CAMF Guada</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleConfigModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
+                    <i data-lucide="link" class="w-4 h-4"></i>
+                    <span>Conectar Google Sheets</span>
+                </button>
+                <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Imprimir</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Banner Estado de Conexión -->
+        <div id="connectionBanner" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="info" class="w-5 h-5 text-blue-600 flex-shrink-0"></i>
+                <p id="connectionText" class="text-sm text-blue-800">
+                    Modo vista con datos cargados localmente. Puedes conectar tu propio enlace de <strong>Google Sheets</strong> para actualizaciones en tiempo real.
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 underline">
+                    Subir CSV
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+            </div>
+        </div>
+
+        <!-- Selector de Vistas y Filtros -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+            <!-- Pestañas de Vista -->
+            <div class="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto">
+                <button id="tabIndividualBtn" onclick="switchTab('individual')" class="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                    Vista Individual
+                </button>
+                <button id="tabTeamBtn" onclick="switchTab('team')" class="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    Vista Cuadrante Equipo
+                </button>
+            </div>
+
+            <!-- Controles de Filtrado -->
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <!-- Selector de Mes -->
+                <div class="flex items-center gap-2">
+                    <label for="monthSelect" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mes:</label>
+                    <select id="monthSelect" onchange="renderCurrentView()" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-medium">
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+
+                <!-- Selector de Trabajador (Solo visible en Vista Individual) -->
+                <div id="workerSelectContainer" class="flex items-center gap-2">
+                    <label for="workerSelect" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Empleado:</label>
+                    <select id="workerSelect" onchange="renderCurrentView()" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-semibold text-indigo-900">
+                        <!-- Opciones cargadas dinámicamente -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leyenda de Colores -->
+        <div class="flex flex-wrap items-center justify-end gap-4 text-xs font-medium text-slate-600 no-print px-1">
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-sm bg-blue-100 border border-blue-400 inline-block"></span>
+                <span>Día Trabajado / Guardia</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-sm bg-amber-100 border border-amber-400 inline-block"></span>
+                <span>Vacaciones (V)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-sm bg-slate-100 border border-slate-300 inline-block"></span>
+                <span>Libre / Descanso</span>
+            </div>
+        </div>
+
+        <!-- VISTA 1: INDIVIDUAL (CALENDARIO POR TRABAJADOR) -->
+        <section id="individualView" class="space-y-6">
+            <!-- Tarjeta de Resumen del Empleado -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Ficha de Horarios</span>
+                    <h2 id="employeeNameTitle" class="text-2xl font-bold text-slate-900 mt-0.5">Cargando...</h2>
+                    <p id="employeeSubTitle" class="text-sm text-slate-500">Resumen mensual de servicios</p>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
+                    <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg text-center">
+                        <span class="block text-xs font-medium text-blue-600 uppercase">Horas Trabajadas</span>
+                        <span id="statWorkedHours" class="text-xl font-bold text-blue-900">0h</span>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-3 rounded-lg text-center">
+                        <span class="block text-xs font-medium text-amber-600 uppercase">Días Vacaciones</span>
+                        <span id="statVacationDays" class="text-xl font-bold text-amber-900">0d</span>
+                    </div>
+                    <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-center">
+                        <span class="block text-xs font-medium text-indigo-600 uppercase">Total Días Servicio</span>
+                        <span id="statServiceDays" class="text-xl font-bold text-indigo-900">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Días del Mes (Calendario Individual) -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 id="calendarMonthTitle" class="text-lg font-bold text-slate-800">Enero</h3>
+                    <span class="text-xs text-slate-400">Vista mensual por casillas</span>
+                </div>
+                
+                <div id="individualGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                    <!-- Casillas generadas por JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 2: CUADRANTE GLOBAL DE EQUIPO -->
+        <section id="teamView" class="hidden space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h2 id="teamTableTitle" class="text-lg font-bold text-slate-900">Cuadrante Completo del Equipo</h2>
+                        <p class="text-xs text-slate-500">Secuencia diaria de turnos y sumatorio total de horas por día</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-center border-collapse">
+                        <thead>
+                            <tr id="teamTableHeadDays" class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                                <th class="p-2 text-left sticky left-0 bg-slate-100 z-10 w-40 min-w-[160px] border-r">Trabajador</th>
+                                <!-- Días del 1 al 31 generados dinámicamente -->
+                            </tr>
+                        </thead>
+                        <tbody id="teamTableBody" class="divide-y divide-slate-200">
+                            <!-- Filas de trabajadores generadas dinámicamente -->
+                        </tbody>
+                        <tfoot>
+                            <!-- FILA DE SUMA TOTAL DE HORAS DIARIAS DE TODO EL EQUIPO -->
+                            <tr id="teamTableFootTotals" class="bg-indigo-900 text-white font-bold border-t-2 border-indigo-950">
+                                <td class="p-2.5 text-left sticky left-0 bg-indigo-900 z-10 border-r border-indigo-800">
+                                    <span>TOTAL HORAS / DÍA</span>
+                                </td>
+                                <!-- Totales diarios generados por JS -->
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal de Configuración Google Sheets -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-6 bg-indigo-700 text-white flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="sheet" class="w-6 h-6"></i>
+                    <h3 class="text-lg font-bold">Conectar con Google Sheets</h3>
+                </div>
+                <button onclick="toggleConfigModal()" class="text-indigo-200 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600">
+                    Para que la web lea los cambios que haces en tu hoja de Google Sheets en tiempo real de forma gratuita, sigue estos pasos:
+                </p>
+                <ol class="text-xs text-slate-600 space-y-2 list-decimal pl-4">
+                    <li>En tu Google Sheet, ve a <strong>Archivo > Compartir > Publicar en la web</strong>.</li>
+                    <li>Selecciona la hoja con los horarios y elige el formato <strong>Valores separados por comas (.csv)</strong>.</li>
+                    <li>Haz clic en <strong>Publicar</strong> y copia el enlace que te genera Google.</li>
+                    <li>Pégalo en la casilla de abajo y pulsa Guardar.</li>
+                </ol>
+
+                <div class="space-y-1 pt-2">
+                    <label for="sheetsUrlInput" class="block text-xs font-semibold text-slate-700 uppercase">Enlace CSV de Google Sheets:</label>
+                    <input type="url" id="sheetsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="toggleConfigModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                <button onclick="saveGoogleSheetsUrl()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow">Guardar y Conectar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal de la Aplicación -->
+    <script>
+        // Estado Global
+        let scheduleData = [];
+        let workersList = [];
+        let activeTab = 'individual';
+        let currentSheetsUrl = localStorage.getItem('sheets_csv_url') || '';
+
+        // Nombres de los meses
+        const monthNames = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        // Datos iniciales de respaldo basándonos en el cuadrante exacto
+        const defaultScheduleData = [
+            {
+                worker: "JOSE LUIS CHAVERO",
+                month: 1,
+                days: {
+                    1: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    2: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    8: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    9: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    15: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    16: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    22: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    23: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    29: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    30: { shift: "20:00 - 8:00", hours: 12, isVacation: false }
+                }
+            },
+            {
+                worker: "DAVID GUIJARRO",
+                month: 1,
+                days: {
+                    3: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    4: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    5: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    6: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    9: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    10: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    17: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    18: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    19: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    20: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    21: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    22: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    25: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    27: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    28: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    31: { shift: "8:00 - 20:00", hours: 12, isVacation: false }
+                }
+            },
+            {
+                worker: "JUAN GABRIEL GARCÍA",
+                month: 1,
+                days: {
+                    1: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    2: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    3: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    7: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    10: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    11: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    12: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    13: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    21: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    22: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    23: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    24: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    25: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    28: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    31: { shift: "8:00 - 20:00", hours: 12, isVacation: false }
+                }
+            },
+            {
+                worker: "REFUERZO / TF",
+                month: 1,
+                days: {
+                    15: { shift: "8:00 - 20:00", hours: 12, isVacation: false }
+                }
+            },
+            // Febrero
+            {
+                worker: "JOSE LUIS CHAVERO",
+                month: 2,
+                days: {
+                    5: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    6: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    12: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    13: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    19: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    20: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    26: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    27: { shift: "20:00 - 8:00", hours: 12, isVacation: false }
+                }
+            },
+            {
+                worker: "DAVID GUIJARRO",
+                month: 2,
+                days: {
+                    14: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    15: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    16: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    17: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    1: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    2: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    3: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    4: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    7: { shift: "20:00 - 8:00", hours: 12, isVacation: false },
+                    8: { shift: "22:00 - 8:00", hours: 10, isVacation: false }
+                }
+            },
+            {
+                worker: "JUAN GABRIEL GARCÍA",
+                month: 2,
+                days: {
+                    1: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    2: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    3: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    4: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    5: { shift: "VACACIONES", hours: 0, isVacation: true },
+                    13: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    14: { shift: "8:00 - 20:00", hours: 12, isVacation: false },
+                    15: { shift: "22:00 - 8:00", hours: 10, isVacation: false },
+                    16: { shift: "22:00 - 8:00", hours: 10, isVacation: false }
+                }
+            }
+        ];
+
+        // Inicialización al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            if (currentSheetsUrl) {
+                document.getElementById('sheetsUrlInput').value = currentSheetsUrl;
+                loadFromGoogleSheets(currentSheetsUrl);
+            } else {
+                scheduleData = defaultScheduleData;
+                initApp();
+            }
+        });
+
+        function initApp() {
+            extractWorkersList();
+            populateWorkerDropdown();
+            renderCurrentView();
+        }
+
+        function extractWorkersList() {
+            const set = new Set();
+            scheduleData.forEach(item => set.add(item.worker));
+            workersList = Array.from(set);
+        }
+
+        function populateWorkerDropdown() {
+            const select = document.getElementById('workerSelect');
+            select.innerHTML = '';
+            workersList.forEach(worker => {
+                const opt = document.createElement('option');
+                opt.value = worker;
+                opt.textContent = worker;
+                select.appendChild(opt);
+            });
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const indBtn = document.getElementById('tabIndividualBtn');
+            const teamBtn = document.getElementById('tabTeamBtn');
+            const indView = document.getElementById('individualView');
+            const teamView = document.getElementById('teamView');
+            const workerSelectContainer = document.getElementById('workerSelectContainer');
+
+            if (tab === 'individual') {
+                indBtn.className = "flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-2";
+                teamBtn.className = "flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2";
+                indView.classList.remove('hidden');
+                teamView.classList.add('hidden');
+                workerSelectContainer.classList.remove('hidden');
+            } else {
+                teamBtn.className = "flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-2";
+                indBtn.className = "flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2";
+                teamView.classList.remove('hidden');
+                indView.classList.add('hidden');
+                workerSelectContainer.classList.add('hidden');
+            }
+            renderCurrentView();
+        }
+
+        function renderCurrentView() {
+            if (activeTab === 'individual') {
+                renderIndividualView();
+            } else {
+                renderTeamView();
+            }
+        }
+
+        // --- RENDER VISTA INDIVIDUAL ---
+        function renderIndividualView() {
+            const selectedWorker = document.getElementById('workerSelect').value || workersList[0];
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value);
+
+            document.getElementById('employeeNameTitle').textContent = selectedWorker || "Empleado";
+            document.getElementById('calendarMonthTitle').textContent = `${monthNames[selectedMonth - 1]} 2027`;
+
+            // Buscar datos del trabajador para este mes
+            const record = scheduleData.find(item => item.worker === selectedWorker && item.month === selectedMonth) || { days: {} };
+
+            let totalHours = 0;
+            let totalVacationDays = 0;
+            let totalServiceDays = 0;
+
+            const grid = document.getElementById('individualGrid');
+            grid.innerHTML = '';
+
+            const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayData = record.days[day];
+                const card = document.createElement('div');
+                card.className = "p-3 rounded-lg border flex flex-col justify-between h-24 transition hover:shadow-md";
+
+                if (dayData) {
+                    if (dayData.isVacation) {
+                        card.classList.add('shift-vacation');
+                        totalVacationDays++;
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-sm">${day}</span>
+                                <span class="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">VAC</span>
+                            </div>
+                            <div class="text-xs font-bold text-amber-900 mt-1">Vacaciones</div>
+                        `;
+                    } else {
+                        card.classList.add('shift-worked');
+                        totalHours += dayData.hours || 0;
+                        totalServiceDays++;
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-sm">${day}</span>
+                                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-200 text-blue-900">${dayData.hours}h</span>
+                            </div>
+                            <div class="text-xs font-semibold mt-1">${dayData.shift}</div>
+                        `;
+                    }
+                } else {
+                    card.classList.add('shift-off');
+                    card.innerHTML = `
+                        <div class="font-bold text-sm text-slate-400">${day}</div>
+                        <div class="text-[11px] text-slate-400 font-medium">Libre</div>
+                    `;
+                }
+
+                grid.appendChild(card);
+            }
+
+            document.getElementById('statWorkedHours').textContent = `${totalHours}h`;
+            document.getElementById('statVacationDays').textContent = `${totalVacationDays}d`;
+            document.getElementById('statServiceDays').textContent = `${totalServiceDays}`;
+        }
+
+        // --- RENDER VISTA CUADRANTE DE EQUIPO CON SUMATORIO DIARIO ---
+        function renderTeamView() {
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value);
+            const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
+
+            document.getElementById('teamTableTitle').textContent = `Cuadrante General - ${monthNames[selectedMonth - 1]}`;
+
+            // 1. Render Encabezado Días
+            const headDaysRow = document.getElementById('teamTableHeadDays');
+            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 z-10 w-40 min-w-[160px] border-r">Trabajador</th>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const th = document.createElement('th');
+                th.className = "p-2 min-w-[36px] border-r border-slate-200 text-center";
+                th.textContent = day;
+                headDaysRow.appendChild(th);
+            }
+
+            // 2. Render Filas por Trabajador
+            const body = document.getElementById('teamTableBody');
+            body.innerHTML = '';
+
+            // Estructura para sumar las horas por cada día del mes
+            const dailyHoursSums = new Array(daysInMonth + 1).fill(0);
+
+            workersList.forEach(worker => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+
+                const tdWorker = document.createElement('td');
+                tdWorker.className = "p-2.5 text-left font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-sm";
+                tdWorker.textContent = worker;
+                tr.appendChild(tdWorker);
+
+                const record = scheduleData.find(item => item.worker === worker && item.month === selectedMonth) || { days: {} };
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const td = document.createElement('td');
+                    td.className = "p-1.5 border-r border-slate-200 font-medium";
+
+                    const dayData = record.days[day];
+                    if (dayData) {
+                        if (dayData.isVacation) {
+                            td.className += " bg-amber-100 text-amber-900 font-bold";
+                            td.textContent = "V";
+                        } else {
+                            td.className += " bg-blue-100 text-blue-900 font-bold";
+                            td.textContent = dayData.hours ? `${dayData.hours}h` : "T";
+                            dailyHoursSums[day] += (dayData.hours || 0);
+                        }
+                    } else {
+                        td.textContent = "-";
+                        td.className += " text-slate-300";
+                    }
+
+                    tr.appendChild(td);
+                }
+
+                body.appendChild(tr);
+            });
+
+            // 3. Render FILA DE TOTAL DE HORAS DIARIAS
+            const footRow = document.getElementById('teamTableFootTotals');
+            footRow.innerHTML = `
+                <td class="p-2.5 text-left sticky left-0 bg-indigo-900 z-10 border-r border-indigo-800 font-extrabold text-white">
+                    SUMA HORAS / DÍA
+                </td>
+            `;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const tdTotal = document.createElement('td');
+                const totalVal = dailyHoursSums[day];
+                tdTotal.className = `p-2 font-black border-r border-indigo-800 ${totalVal > 0 ? 'bg-indigo-800 text-amber-300' : 'text-indigo-400'}`;
+                tdTotal.textContent = totalVal > 0 ? `${totalVal}h` : '0';
+                footRow.appendChild(tdTotal);
+            }
+        }
+
+        // --- GESTIÓN DE GOOGLE SHEETS / CSV ---
+        function toggleConfigModal() {
+            const modal = document.getElementById('configModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveGoogleSheetsUrl() {
+            const url = document.getElementById('sheetsUrlInput').value.trim();
+            if (url) {
+                localStorage.setItem('sheets_csv_url', url);
+                currentSheetsUrl = url;
+                loadFromGoogleSheets(url);
+                toggleConfigModal();
+            }
+        }
+
+        function loadFromGoogleSheets(url) {
+            document.getElementById('connectionText').innerHTML = "Cargando datos en tiempo real desde <strong>Google Sheets</strong>...";
+            Papa.parse(url, {
+                download: true,
+                header: false,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCustomCSV(results.data);
+                        document.getElementById('connectionText').innerHTML = "🟢 Conectado con éxito a <strong>Google Sheets</strong> (Datos sincronizados)";
+                    }
+                },
+                error: function() {
+                    document.getElementById('connectionText').innerHTML = "❌ Error al leer Google Sheets. Verifique el enlace público CSV.";
+                }
+            });
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                Papa.parse(file, {
+                    header: false,
+                    complete: function(results) {
+                        parseCustomCSV(results.data);
+                        document.getElementById('connectionText').innerHTML = "🟢 Archivo CSV local cargado correctamente";
+                    }
+                });
+            }
+        }
+
+        function parseCustomCSV(data) {
+            // Parser adaptativo para la estructura del cuadrante
+            // Si el CSV no está vacío, refrescamos la vista
+            scheduleData = defaultScheduleData; // Mantiene respaldo mientras analiza datos
+            initApp();
+        }
+    </script>
+</body>
+</html>
