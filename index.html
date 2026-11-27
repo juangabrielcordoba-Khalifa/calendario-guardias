@@ -40,13 +40,18 @@
 
         /* Estilos de Impresión A4 Horizontal */
         @media print {
-            @page { size: A4 landscape; margin: 0.6cm; }
-            body { background: #ffffff !important; color: #000000 !important; font-size: 9pt !important; }
+            @page { size: A4 landscape; margin: 0.4cm; }
+            body { background: #ffffff !important; color: #000000 !important; font-size: 8pt !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .no-print { display: none !important; }
-            main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 0 !important; }
+            main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 0 !important; }
+            .overflow-x-auto { overflow: visible !important; width: 100% !important; }
             .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; }
-            table { width: 100% !important; page-break-inside: avoid; border-collapse: collapse !important; }
-            th, td { padding: 3px 4px !important; font-size: 8pt !important; border: 1px solid #cbd5e1 !important; }
+            .bg-white, .bg-slate-50, .dark\:bg-slate-800, .dark\:bg-slate-900 { background-color: #ffffff !important; color: #000000 !important; }
+            
+            table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; page-break-inside: avoid; border-collapse: collapse !important; }
+            th, td { padding: 1px 2px !important; font-size: 7.5pt !important; border: 1px solid #94a3b8 !important; text-align: center !important; word-wrap: break-word !important; }
+            th:first-child, td:first-child { width: 16% !important; min-width: 110px !important; text-align: left !important; font-weight: bold !important; }
+            .sticky { position: static !important; }
             .border, .border-2 { border-width: 1px !important; }
         }
     </style>
@@ -148,20 +153,10 @@
         <!-- VISTA 1: CUADRANTE GLOBAL DE EQUIPO (POR DEFECTO) -->
         <section id="teamView" class="space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                     <div>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-                        <div>
-                            <h2 id="teamTableTitle" class="text-lg font-bold text-slate-900">Cuadrante Completo del Equipo</h2>
-                            <p class="text-xs text-slate-500">Secuencia diaria de turnos y sumatorio total de horas por día</p>
-                        </div>
-                        <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg no-print">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase px-1">Filtro:</span>
-                            <button onclick="setTeamShiftFilter('all')" id="btnFilterAll" class="px-2 py-1 text-xs font-semibold rounded bg-white text-indigo-700 shadow-xs">Todos</button>
-                            <button onclick="setTeamShiftFilter('night')" id="btnFilterNight" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">🌙 Noches</button>
-                            <button onclick="setTeamShiftFilter('day')" id="btnFilterDay" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">☀️ Días</button>
-                            <button onclick="setTeamShiftFilter('vacation')" id="btnFilterVacation" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">🏖️ Vacaciones</button>
-                        </div>
+                        <h2 id="teamTableTitle" class="text-lg font-bold text-slate-900 dark:text-white">Cuadrante Completo del Equipo</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Secuencia diaria de turnos y sumatorio total de horas por día</p>
                     </div>
                 </div>
 
@@ -1644,7 +1639,7 @@
             document.getElementById('teamTableTitle').textContent = `Cuadrante General - ${monthNames[selectedMonth - 1]} 2027`;
 
             const headDaysRow = document.getElementById('teamTableHeadDays');
-            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 w-40 min-w-[160px] border-r border-slate-300">Trabajador</th>`;
+            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 w-40 min-w-[140px] border-r border-slate-300 dark:border-slate-700">Trabajador</th>`;
             
             const dayLetters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
             
@@ -1654,16 +1649,16 @@
                 const letter = dayLetters[date.getDay()];
                 
                 const th = document.createElement('th');
-                th.className = "p-1.5 min-w-[38px] border-r border-slate-200 text-center";
+                th.className = "p-1 min-w-[30px] border-r border-slate-200 dark:border-slate-700 text-center";
                 
                 if (dayType === 'holiday') {
-                    th.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
-                    th.innerHTML = `<div class="text-[10px] font-extrabold text-red-600">${letter}</div><div class="font-black text-red-700 text-xs">${day}</div>`;
+                    th.classList.add('bg-red-100', 'text-red-700', 'border-red-300', 'dark:bg-red-950/40', 'dark:text-red-300');
+                    th.innerHTML = `<div class="text-[10px] font-extrabold text-red-600 dark:text-red-400">${letter}</div><div class="font-black text-red-700 dark:text-red-300 text-xs">${day}</div>`;
                 } else if (dayType === 'weekend') {
-                    th.classList.add('bg-purple-100', 'text-purple-700', 'border-purple-200');
-                    th.innerHTML = `<div class="text-[10px] font-bold text-purple-600">${letter}</div><div class="font-bold text-purple-700 text-xs">${day}</div>`;
+                    th.classList.add('bg-purple-100', 'text-purple-700', 'border-purple-200', 'dark:bg-purple-950/40', 'dark:text-purple-300');
+                    th.innerHTML = `<div class="text-[10px] font-bold text-purple-600 dark:text-purple-400">${letter}</div><div class="font-bold text-purple-700 dark:text-purple-300 text-xs">${day}</div>`;
                 } else {
-                    th.innerHTML = `<div class="text-[10px] font-medium text-slate-500">${letter}</div><div class="font-bold text-slate-700 text-xs">${day}</div>`;
+                    th.innerHTML = `<div class="text-[10px] font-medium text-slate-500 dark:text-slate-400">${letter}</div><div class="font-bold text-slate-700 dark:text-slate-300 text-xs">${day}</div>`;
                 }
                 
                 headDaysRow.appendChild(th);
@@ -1684,7 +1679,7 @@
                 };
 
                 const tdWorker = document.createElement('td');
-                tdWorker.className = "p-2 text-left font-bold text-slate-800 dark:text-slate-200 sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 shadow-xs";
+                tdWorker.className = "p-2 text-left font-bold text-slate-800 dark:text-slate-200 sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700 shadow-xs";
                 tdWorker.textContent = worker;
                 tr.appendChild(tdWorker);
 
@@ -1693,38 +1688,31 @@
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayType = getDayType(2027, selectedMonth, day);
                     const td = document.createElement('td');
-                    td.className = "p-1 border-r border-slate-200 font-medium text-center text-[11px]";
+                    td.className = "p-1 border-r border-slate-200 dark:border-slate-700 font-medium text-center text-[11px]";
 
-                    if (dayType === 'holiday') td.classList.add('bg-red-50/40');
-                    else if (dayType === 'weekend') td.classList.add('bg-purple-50/30');
+                    if (dayType === 'holiday') td.classList.add('bg-red-50/40', 'dark:bg-red-950/20');
+                    else if (dayType === 'weekend') td.classList.add('bg-purple-50/30', 'dark:bg-purple-950/20');
 
                     const dayData = record.days[day] || record.days[day.toString()];
-                    let isMatch = true;
 
                     if (dayData) {
                         if (dayData.isVacation) {
-                            td.className += " bg-amber-100 text-amber-900 font-extrabold shadow-xs";
-                            td.textContent = "V";
-                            if (currentShiftFilter === 'night' || currentShiftFilter === 'day') isMatch = false;
+                            td.className += " bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200 font-extrabold shadow-xs p-1";
+                            td.innerHTML = `<span class="text-xs font-black">V</span>`;
                         } else {
-                            td.className += " bg-blue-100 text-blue-900 font-bold shadow-xs";
-                            td.textContent = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
+                            td.className += " bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-200 font-bold shadow-xs p-1";
                             dailyHoursSums[day] += (dayData.hours || 0);
 
-                            if (currentShiftFilter === 'night' && !dayData.shift.includes('20:00') && !dayData.shift.includes('22:00') && !dayData.shift.includes('24')) isMatch = false;
-                            if (currentShiftFilter === 'day' && !dayData.shift.includes('8:00')) isMatch = false;
-                            if (currentShiftFilter === 'vacation') isMatch = false;
+                            let shiftStr = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
+                            if (shiftStr.includes(' - ')) {
+                                let parts = shiftStr.split(' - ');
+                                td.innerHTML = `<div class="text-[9px] leading-tight font-extrabold">${parts[0]}<div class="text-[8px] opacity-40 font-normal my-[-2px]">-</div>${parts[1]}</div>`;
+                            } else {
+                                td.innerHTML = `<div class="text-[10px] font-extrabold">${shiftStr}</div>`;
+                            }
                         }
                     } else {
-                        td.textContent = "-";
-                        td.className += " text-slate-300";
-                        if (currentShiftFilter !== 'all') isMatch = false;
-                    }
-
-                    if (!isMatch) {
-                        td.style.opacity = '0.2';
-                    } else {
-                        td.style.opacity = '1';
+                        td.innerHTML = `<span class="text-slate-300 dark:text-slate-600 font-medium text-xs">-</span>`;
                     }
 
                     tr.appendChild(td);
@@ -1749,8 +1737,6 @@
             }
         }
 
-        
-        // --- GESTIÓN DE MODO NOCHE ---
         function toggleDarkMode() {
             document.body.classList.toggle('dark');
             const isDark = document.body.classList.contains('dark');
@@ -1836,12 +1822,12 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800 transition";
                 tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-800 dark:text-slate-200">${worker}</td>
-                    <td class="p-3 text-center font-extrabold text-blue-700 dark:text-blue-400">${Math.round(totalComputedHours * 100) / 100}h</td>
-                    <td class="p-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400">${Math.round(totalExtraHours * 100) / 100}h</td>
-                    <td class="p-3 text-center font-bold text-slate-700 dark:text-slate-300">${totalServicesCount}</td>
-                    <td class="p-3 text-center font-bold text-amber-700 dark:text-amber-400">${totalVacationDays}d</td>
-                    <td class="p-3 text-center font-semibold text-slate-600 dark:text-slate-400">${quotaText}</td>
+                    <td class="p-3 font-bold text-slate-900 dark:text-white">${worker}</td>
+                    <td class="p-3 text-center font-extrabold text-blue-900 dark:text-blue-300">${Math.round(totalComputedHours * 100) / 100}h</td>
+                    <td class="p-3 text-center font-extrabold text-emerald-800 dark:text-emerald-300">${Math.round(totalExtraHours * 100) / 100}h</td>
+                    <td class="p-3 text-center font-black text-slate-900 dark:text-white">${totalServicesCount}</td>
+                    <td class="p-3 text-center font-black text-amber-800 dark:text-amber-300">${totalVacationDays}d</td>
+                    <td class="p-3 text-center font-bold text-slate-800 dark:text-slate-200">${quotaText}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -2065,13 +2051,13 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-xs text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 font-bold border-b border-slate-200">
-                            <th class="p-3">Trabajador</th>
-                            <th class="p-3 text-center">Horas Computadas</th>
-                            <th class="p-3 text-center">Horas Extra Totales</th>
-                            <th class="p-3 text-center">Servicios / Guardias</th>
-                            <th class="p-3 text-center">Vacaciones Disfrutadas</th>
-                            <th class="p-3 text-center">Cupo Vacaciones</th>
+                        <tr class="bg-indigo-900 dark:bg-slate-900 text-white font-bold border-b border-indigo-800 dark:border-slate-700">
+                            <th class="p-3 text-white font-bold">Trabajador</th>
+                            <th class="p-3 text-center text-white font-bold">Horas Computadas</th>
+                            <th class="p-3 text-center text-white font-bold">Horas Extra Totales</th>
+                            <th class="p-3 text-center text-white font-bold">Servicios</th>
+                            <th class="p-3 text-center text-white font-bold">Vacaciones Disfrutadas</th>
+                            <th class="p-3 text-center text-white font-bold">Cupo Vacaciones</th>
                         </tr>
                     </thead>
                     <tbody id="annualSummaryTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 font-medium">
