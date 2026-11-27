@@ -12,13 +12,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .shift-worked { background-color: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
-        .shift-vacation { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
-        .shift-off { background-color: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.2s, color 0.2s; }
+        
+        /* Modos de Estado de Turnos */
+        .shift-worked { background-color: #eff6ff; color: #1e40af; border-color: #2563eb; }
+        .shift-vacation { background-color: #fef3c7; color: #92400e; border-color: #f59e0b; }
+        .shift-off { background-color: #f8fafc; color: #94a3b8; border-color: #cbd5e1; }
+
+        /* Estilos Modo Noche (Dark Mode) */
+        body.dark { background-color: #0f172a !important; color: #f1f5f9 !important; }
+        body.dark header { background-color: #020617 !important; border-bottom: 1px solid #1e293b; }
+        body.dark .bg-white { background-color: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
+        body.dark .bg-slate-50 { background-color: #0f172a !important; color: #f1f5f9 !important; }
+        body.dark .bg-slate-100 { background-color: #334155 !important; color: #f8fafc !important; }
+        body.dark .text-slate-900, body.dark .text-slate-800, body.dark .text-slate-700 { color: #f8fafc !important; }
+        body.dark .text-slate-600, body.dark .text-slate-500 { color: #cbd5e1 !important; }
+        body.dark select { background-color: #334155 !important; color: #f8fafc !important; border-color: #475569 !important; }
+        body.dark #connectionBanner { background-color: #1e293b !important; border-left-color: #3b82f6 !important; }
+        body.dark #connectionBanner p, body.dark #connectionBanner strong { color: #bfdbfe !important; }
+        body.dark .shift-off { background-color: #1e293b !important; color: #64748b !important; border-color: #334155 !important; }
+        body.dark .shift-worked { background-color: #1e3a8a !important; color: #bfdbfe !important; border-color: #3b82f6 !important; }
+        body.dark .shift-vacation { background-color: #78350f !important; color: #fde68a !important; border-color: #d97706 !important; }
+        body.dark table th { background-color: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
+        body.dark table td { border-color: #334155 !important; }
+        body.dark table td.sticky, body.dark table th.sticky { background-color: #1e293b !important; }
+        body.dark .modal-card { background-color: #1e293b !important; color: #f8fafc !important; }
+
+        /* Estilos de Impresión A4 Horizontal */
         @media print {
+            @page { size: A4 landscape; margin: 0.6cm; }
+            body { background: #ffffff !important; color: #000000 !important; font-size: 9pt !important; }
             .no-print { display: none !important; }
-            .print-full { width: 100% !important; max-width: none !important; }
+            main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 0 !important; }
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+            table { width: 100% !important; page-break-inside: avoid; border-collapse: collapse !important; }
+            th, td { padding: 3px 4px !important; font-size: 8pt !important; border: 1px solid #cbd5e1 !important; }
+            .border, .border-2 { border-width: 1px !important; }
         }
     </style>
 </head>
@@ -37,10 +66,18 @@
                 </div>
             </div>
             
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openAnnualModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Acumulado Anual</span>
+                </button>
+                <button onclick="toggleDarkMode()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
+                    <i data-lucide="moon" id="darkModeIcon" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline" id="darkModeText">Modo Noche</span>
+                </button>
                 <button onclick="toggleConfigModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
                     <i data-lucide="link" class="w-4 h-4"></i>
-                    <span>Conectar Google Sheets</span>
+                    <span class="hidden md:inline">Google Sheets</span>
                 </button>
                 <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition">
                     <i data-lucide="printer" class="w-4 h-4"></i>
@@ -54,18 +91,12 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <!-- Banner Estado de Conexión -->
-        <div id="connectionBanner" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+        <div id="connectionBanner" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between gap-3 no-print">
             <div class="flex items-center space-x-3">
                 <i data-lucide="info" class="w-5 h-5 text-blue-600 flex-shrink-0"></i>
                 <p id="connectionText" class="text-sm text-blue-800">
                     Modo vista con datos cargados localmente. Puedes conectar tu propio enlace de <strong>Google Sheets</strong> para actualizaciones en tiempo real.
                 </p>
-            </div>
-            <div class="flex items-center gap-2">
-                <label class="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 underline">
-                    Subir CSV
-                    <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
-                </label>
             </div>
         </div>
 
@@ -119,8 +150,18 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div>
-                        <h2 id="teamTableTitle" class="text-lg font-bold text-slate-900">Cuadrante Completo del Equipo</h2>
-                        <p class="text-xs text-slate-500">Secuencia diaria de turnos con indicación de días festivos, fines de semana y sumatorio total de horas por día</p>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                        <div>
+                            <h2 id="teamTableTitle" class="text-lg font-bold text-slate-900">Cuadrante Completo del Equipo</h2>
+                            <p class="text-xs text-slate-500">Secuencia diaria de turnos y sumatorio total de horas por día</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg no-print">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase px-1">Filtro:</span>
+                            <button onclick="setTeamShiftFilter('all')" id="btnFilterAll" class="px-2 py-1 text-xs font-semibold rounded bg-white text-indigo-700 shadow-xs">Todos</button>
+                            <button onclick="setTeamShiftFilter('night')" id="btnFilterNight" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">🌙 Noches</button>
+                            <button onclick="setTeamShiftFilter('day')" id="btnFilterDay" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">☀️ Días</button>
+                            <button onclick="setTeamShiftFilter('vacation')" id="btnFilterVacation" class="px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900">🏖️ Vacaciones</button>
+                        </div>
                     </div>
                 </div>
 
@@ -157,21 +198,21 @@
                 <!-- Métricas -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
                     <!-- 1. Horas Totales Mes -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                    <div id="statWorkedHoursCard" class="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
                         <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-wider">Horas Totales</span>
                         <span id="statWorkedHours" class="text-lg font-extrabold text-blue-900 my-0.5">0h</span>
                         <span class="block text-[9px] text-blue-700 font-medium">(Incluye 5,23h / V)</span>
                     </div>
 
                     <!-- 2. Horas Extra Mes -->
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                    <div id="statExtraHoursCard" class="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
                         <span class="block text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Horas Extra</span>
                         <span id="statExtraHours" class="text-lg font-extrabold text-emerald-900 my-0.5">0h</span>
                         <span class="block text-[9px] text-emerald-700 font-medium">(Exceso > 162h)</span>
                     </div>
 
                     <!-- 3. Vacaciones Mes -->
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                    <div id="statVacationDaysCard" class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
                         <span class="block text-[10px] font-bold text-amber-600 uppercase tracking-wider">Vacaciones Mes</span>
                         <span id="statVacationDays" class="text-lg font-extrabold text-amber-900 my-0.5">0d</span>
                         <span class="block text-[9px] text-amber-700 font-medium">Disfrutadas este mes</span>
@@ -185,7 +226,7 @@
                     </div>
 
                     <!-- 5. Servicios Mes -->
-                    <div class="bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                    <div id="statServiceDaysCard" class="bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
                         <span class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">Servicios Mes</span>
                         <span id="statServiceDays" class="text-lg font-extrabold text-slate-800 my-0.5">0</span>
                         <span class="block text-[9px] text-slate-500 font-medium">Días de guardia</span>
@@ -1329,10 +1370,14 @@
         });
 
         function initApp() {
+            if (localStorage.getItem('theme_dark') === 'true') {
+                document.body.classList.add('dark');
+                updateDarkModeUI(true);
+            }
             extractWorkersList();
             populateWorkerDropdown();
             renderCurrentView();
-            if (window.lucide) lucide.createIcons();
+            if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
         }
 
         function extractWorkersList() {
@@ -1382,7 +1427,7 @@
             } else {
                 renderTeamView();
             }
-            if (window.lucide) lucide.createIcons();
+            if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
         }
 
         // --- RENDER VISTA INDIVIDUAL (LUNES A DOMINGO + COLORES + 5,23h POR V) ---
@@ -1455,48 +1500,42 @@
                         totalServiceDays++;
 
                         if (dayType === 'holiday') {
-                            // Día TRABAJADO en FESTIVO -> Borde rojo grueso (border-2 border-red-600)
-                            card.className += " border-2 border-red-600 bg-red-50 shadow-sm";
+                            card.className += " border-2 border-red-600 bg-red-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-red-700">${day} <span class="text-[10px] font-bold text-red-500">${letter}</span></span>
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-red-600 text-white shadow-xs">FEST</span>
-                                        <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-600 text-white shadow-xs">${dayData.hours}h</span>
-                                    </div>
+                                    <span class="font-black text-xs text-red-700">${day} <span class="text-[10px] font-semibold text-red-500">${letter}</span></span>
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-600 text-white shadow-xs">FEST</span>
                                 </div>
-                                <div class="text-xs font-black text-red-950 mt-1 leading-tight">${dayData.shift}</div>
+                                <div class="text-xs font-black text-red-900 mt-1">${dayData.shift}</div>
                             `;
                         } else if (dayType === 'weekend') {
-                            // Día TRABAJADO en FIN DE SEMANA -> Borde morado grueso (border-2 border-purple-600)
-                            card.className += " border-2 border-purple-600 bg-purple-50/90 shadow-sm";
+                            card.className += " border-2 border-purple-600 bg-purple-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-purple-800">${day} <span class="text-[10px] font-bold text-purple-600">${letter}</span></span>
-                                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-700 text-white shadow-xs">${dayData.hours}h</span>
+                                    <span class="font-black text-xs text-purple-800">${day} <span class="text-[10px] font-semibold text-purple-600">${letter}</span></span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white shadow-xs">${dayData.hours}h</span>
                                 </div>
-                                <div class="text-xs font-extrabold text-purple-950 mt-1 leading-tight">${dayData.shift}</div>
+                                <div class="text-xs font-extrabold text-purple-950 mt-1">${dayData.shift}</div>
                             `;
                         } else {
-                            // Día TRABAJADO LABORABLE (Normal) -> Borde azul oscuro grueso (border-2 border-blue-600)
-                            card.className += " border-2 border-blue-600 bg-blue-50/90 shadow-sm";
+                            card.className += " border-2 border-blue-600 bg-blue-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-blue-900">${day} <span class="text-[10px] font-bold text-blue-600">${letter}</span></span>
-                                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-700 text-white shadow-xs">${dayData.hours}h</span>
+                                    <span class="font-black text-xs text-blue-900">${day} <span class="text-[10px] font-semibold text-blue-600">${letter}</span></span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white shadow-xs">${dayData.hours}h</span>
                                 </div>
-                                <div class="text-xs font-extrabold text-blue-950 mt-1 leading-tight">${dayData.shift}</div>
+                                <div class="text-xs font-bold text-blue-950 mt-1">${dayData.shift}</div>
                             `;
                         }
                     }
                 } else {
-                    // Día LIBRE (Sin trabajar)
+                    card.className += " shift-off";
                     if (dayType === 'holiday') {
-                        card.className += " border border-red-200 bg-red-50/30 opacity-70";
+                        card.className += " border-2 border-red-300 bg-red-50/30";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-red-600">${day} <span class="text-[10px] font-normal text-red-400">${letter}</span></span>
-                                <span class="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-red-100 text-red-600">FEST</span>
+                                <span class="font-black text-xs text-red-700">${day} <span class="text-[10px] font-normal text-red-400">${letter}</span></span>
+                                ${headerBadge}
                             </div>
                             <div class="text-[11px] text-red-400 font-medium mt-1">Libre</div>
                         `;
@@ -1536,23 +1575,27 @@
             // 3. Vacaciones Mes
             document.getElementById('statVacationDays').textContent = `${totalVacationDays}d`;
 
-            // 4. Vacaciones Año (Personalizado por trabajador: Jose Luis = 12, Refuerzo = oculto, Otros = 31)
+            // Ocultar tarjetas de Vacaciones y Horas Extra para Refuerzo
             const upperWorker = (selectedWorker || '').toUpperCase();
             const isRefuerzo = upperWorker.includes('REFUERZO') || selectedWorker.includes('?');
+
+            const extraHoursCard = document.getElementById('statExtraHoursCard');
+            const vacationDaysCard = document.getElementById('statVacationDaysCard');
             const annualVacationCard = document.getElementById('statAnnualVacationCard');
 
             if (isRefuerzo) {
+                if (extraHoursCard) extraHoursCard.classList.add('hidden');
+                if (vacationDaysCard) vacationDaysCard.classList.add('hidden');
                 if (annualVacationCard) annualVacationCard.classList.add('hidden');
             } else {
+                if (extraHoursCard) extraHoursCard.classList.remove('hidden');
+                if (vacationDaysCard) vacationDaysCard.classList.remove('hidden');
                 if (annualVacationCard) annualVacationCard.classList.remove('hidden');
-                
-                let annualQuota = 31;
-                if (upperWorker.includes('JOSE LUIS')) {
-                    annualQuota = 12;
-                }
 
+                let annualQuota = upperWorker.includes('JOSE LUIS') ? 12 : 31;
                 let annualVacationTaken = 0;
                 const targetWorkerNorm = (selectedWorker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                
                 scheduleData.forEach(item => {
                     const itemWorkerNorm = (item.worker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
                     if (itemWorkerNorm === targetWorkerNorm) {
@@ -1574,6 +1617,26 @@
         }
 
         // --- RENDER VISTA CUADRANTE DE EQUIPO ---
+        let currentShiftFilter = 'all';
+
+        function setTeamShiftFilter(filter) {
+            currentShiftFilter = filter;
+            const btnAll = document.getElementById('btnFilterAll');
+            const btnNight = document.getElementById('btnFilterNight');
+            const btnDay = document.getElementById('btnFilterDay');
+            const btnVacation = document.getElementById('btnFilterVacation');
+
+            const activeClass = "px-2 py-1 text-xs font-semibold rounded bg-white text-indigo-700 shadow-xs";
+            const inactiveClass = "px-2 py-1 text-xs font-semibold rounded text-slate-600 hover:text-slate-900";
+
+            if (btnAll) btnAll.className = (filter === 'all') ? activeClass : inactiveClass;
+            if (btnNight) btnNight.className = (filter === 'night') ? activeClass : inactiveClass;
+            if (btnDay) btnDay.className = (filter === 'day') ? activeClass : inactiveClass;
+            if (btnVacation) btnVacation.className = (filter === 'vacation') ? activeClass : inactiveClass;
+
+            renderTeamView();
+        }
+
         function renderTeamView() {
             const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
             const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
@@ -1581,7 +1644,7 @@
             document.getElementById('teamTableTitle').textContent = `Cuadrante General - ${monthNames[selectedMonth - 1]} 2027`;
 
             const headDaysRow = document.getElementById('teamTableHeadDays');
-            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 z-10 w-40 min-w-[160px] border-r border-slate-300">Trabajador</th>`;
+            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 w-40 min-w-[160px] border-r border-slate-300">Trabajador</th>`;
             
             const dayLetters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
             
@@ -1591,7 +1654,7 @@
                 const letter = dayLetters[date.getDay()];
                 
                 const th = document.createElement('th');
-                th.className = "p-1.5 min-w-[65px] border-r border-slate-200 text-center";
+                th.className = "p-1.5 min-w-[38px] border-r border-slate-200 text-center";
                 
                 if (dayType === 'holiday') {
                     th.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
@@ -1613,10 +1676,15 @@
 
             workersList.forEach(worker => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition";
+                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer";
+                tr.title = "Haz clic para resaltar la fila de este trabajador";
+                tr.onclick = function() {
+                    tr.classList.toggle('bg-indigo-100/70');
+                    tr.classList.toggle('dark:bg-indigo-900/60');
+                };
 
                 const tdWorker = document.createElement('td');
-                tdWorker.className = "p-2 text-left font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-xs";
+                tdWorker.className = "p-2 text-left font-bold text-slate-800 dark:text-slate-200 sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 shadow-xs";
                 tdWorker.textContent = worker;
                 tr.appendChild(tdWorker);
 
@@ -1625,24 +1693,38 @@
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayType = getDayType(2027, selectedMonth, day);
                     const td = document.createElement('td');
-                    td.className = "p-1 border-r border-slate-200 font-bold text-[10px] text-center whitespace-nowrap min-w-[65px]";
+                    td.className = "p-1 border-r border-slate-200 font-medium text-center text-[11px]";
 
                     if (dayType === 'holiday') td.classList.add('bg-red-50/40');
                     else if (dayType === 'weekend') td.classList.add('bg-purple-50/30');
 
                     const dayData = record.days[day] || record.days[day.toString()];
+                    let isMatch = true;
+
                     if (dayData) {
                         if (dayData.isVacation) {
                             td.className += " bg-amber-100 text-amber-900 font-extrabold shadow-xs";
                             td.textContent = "V";
+                            if (currentShiftFilter === 'night' || currentShiftFilter === 'day') isMatch = false;
                         } else {
                             td.className += " bg-blue-100 text-blue-900 font-bold shadow-xs";
                             td.textContent = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
                             dailyHoursSums[day] += (dayData.hours || 0);
+
+                            if (currentShiftFilter === 'night' && !dayData.shift.includes('20:00') && !dayData.shift.includes('22:00') && !dayData.shift.includes('24')) isMatch = false;
+                            if (currentShiftFilter === 'day' && !dayData.shift.includes('8:00')) isMatch = false;
+                            if (currentShiftFilter === 'vacation') isMatch = false;
                         }
                     } else {
                         td.textContent = "-";
                         td.className += " text-slate-300";
+                        if (currentShiftFilter !== 'all') isMatch = false;
+                    }
+
+                    if (!isMatch) {
+                        td.style.opacity = '0.2';
+                    } else {
+                        td.style.opacity = '1';
                     }
 
                     tr.appendChild(td);
@@ -1661,11 +1743,118 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const tdTotal = document.createElement('td');
                 const totalVal = dailyHoursSums[day];
-                tdTotal.className = `p-2 text-center font-black border-r border-indigo-800 ${totalVal > 0 ? 'bg-indigo-800 text-amber-300' : 'text-indigo-400'}`;
+                tdTotal.className = `p-1.5 text-center font-black border-r border-indigo-800 ${totalVal > 0 ? 'bg-indigo-800 text-amber-300' : 'text-indigo-400'}`;
                 tdTotal.textContent = totalVal > 0 ? `${totalVal}h` : '0';
                 footRow.appendChild(tdTotal);
             }
         }
+
+        
+        // --- GESTIÓN DE MODO NOCHE ---
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('theme_dark', isDark ? 'true' : 'false');
+            updateDarkModeUI(isDark);
+        }
+
+        function updateDarkModeUI(isDark) {
+            const icon = document.getElementById('darkModeIcon');
+            const text = document.getElementById('darkModeText');
+            if (icon) {
+                icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            }
+            if (text) {
+                text.textContent = isDark ? 'Modo Día' : 'Modo Noche';
+            }
+            if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        }
+
+        // --- GESTIÓN DE MODAL ACUMULADO ANUAL ---
+        function openAnnualModal() {
+            if (!workersList || workersList.length === 0) {
+                if (typeof extractWorkersList === 'function') extractWorkersList();
+            }
+            const modal = document.getElementById('annualModal');
+            if (!modal) return;
+            
+            const tbody = document.getElementById('annualSummaryTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            workersList.forEach(worker => {
+                const upper = (worker || '').toUpperCase();
+                const isRef = upper.includes('REFUERZO') || worker.includes('?');
+
+                let totalWorkedHoursSum = 0;
+                let totalVacationDays = 0;
+                let totalServicesCount = 0;
+                let totalExtraHours = 0;
+
+                const workerRecords = scheduleData.filter(item => {
+                    const itemNorm = (item.worker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                    const workerNorm = (worker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                    return itemNorm === workerNorm;
+                });
+
+                for (let m = 1; m <= 12; m++) {
+                    const mRecord = workerRecords.find(item => item.month === m);
+                    if (!mRecord) continue;
+
+                    let monthWorkedHours = 0;
+                    let monthVacationDays = 0;
+
+                    for (let d in mRecord.days) {
+                        const dayData = mRecord.days[d];
+                        if (dayData) {
+                            if (dayData.isVacation) {
+                                monthVacationDays++;
+                                totalVacationDays++;
+                            } else {
+                                monthWorkedHours += (dayData.hours || 0);
+                                totalWorkedHoursSum += (dayData.hours || 0);
+                                totalServicesCount++;
+                            }
+                        }
+                    }
+
+                    let monthComputed = monthWorkedHours + (monthVacationDays * 5.23);
+                    if (monthComputed > 162) {
+                        totalExtraHours += (monthComputed - 162);
+                    }
+                }
+
+                let totalComputedHours = totalWorkedHoursSum + (totalVacationDays * 5.23);
+                let quotaText = '31d';
+                if (isRef) {
+                    quotaText = '-';
+                } else if (upper.includes('JOSE LUIS')) {
+                    quotaText = '12d';
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800 dark:text-slate-200">${worker}</td>
+                    <td class="p-3 text-center font-extrabold text-blue-700 dark:text-blue-400">${Math.round(totalComputedHours * 100) / 100}h</td>
+                    <td class="p-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400">${Math.round(totalExtraHours * 100) / 100}h</td>
+                    <td class="p-3 text-center font-bold text-slate-700 dark:text-slate-300">${totalServicesCount}</td>
+                    <td class="p-3 text-center font-bold text-amber-700 dark:text-amber-400">${totalVacationDays}d</td>
+                    <td class="p-3 text-center font-semibold text-slate-600 dark:text-slate-400">${quotaText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            modal.classList.remove('hidden');
+            if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        }
+
+        function closeAnnualModal() {
+            const modal = document.getElementById('annualModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
 
         // --- GESTIÓN DE GOOGLE SHEETS / CSV ---
         function toggleConfigModal() {
@@ -1854,5 +2043,48 @@
             }
         }
     </script>
+
+    <!-- Modal de Resumen Acumulado Anual -->
+    <div id="annualModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white modal-card rounded-2xl shadow-xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg">
+                        <i data-lucide="award" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Resumen Acumulado Anual</h3>
+                        <p class="text-xs text-slate-500">Cómputo general acumulado de todos los meses procesados</p>
+                    </div>
+                </div>
+                <button onclick="closeAnnualModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 font-bold border-b border-slate-200">
+                            <th class="p-3">Trabajador</th>
+                            <th class="p-3 text-center">Horas Computadas</th>
+                            <th class="p-3 text-center">Horas Extra Totales</th>
+                            <th class="p-3 text-center">Servicios / Guardias</th>
+                            <th class="p-3 text-center">Vacaciones Disfrutadas</th>
+                            <th class="p-3 text-center">Cupo Vacaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="annualSummaryTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 font-medium">
+                        <!-- Filas generadas por JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button onclick="closeAnnualModal()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
