@@ -1639,7 +1639,7 @@
             document.getElementById('teamTableTitle').textContent = `Cuadrante General - ${monthNames[selectedMonth - 1]} 2027`;
 
             const headDaysRow = document.getElementById('teamTableHeadDays');
-            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 w-40 min-w-[140px] border-r border-slate-300 dark:border-slate-700">Trabajador</th>`;
+            headDaysRow.innerHTML = `<th class="p-2 text-left sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 w-40 min-w-[140px] border-r border-slate-300 dark:border-slate-700 font-black text-emerald-700 dark:text-emerald-400 text-sm tracking-tight">Trabajador</th>`;
             
             const dayLetters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
             
@@ -1649,16 +1649,17 @@
                 const letter = dayLetters[date.getDay()];
                 
                 const th = document.createElement('th');
-                th.className = "p-1 min-w-[30px] border-r border-slate-200 dark:border-slate-700 text-center";
+                th.className = "p-1 min-w-[32px] border-r text-center";
                 
                 if (dayType === 'holiday') {
-                    th.classList.add('bg-red-100', 'text-red-700', 'border-red-300', 'dark:bg-red-950/40', 'dark:text-red-300');
-                    th.innerHTML = `<div class="text-[10px] font-extrabold text-red-600 dark:text-red-400">${letter}</div><div class="font-black text-red-700 dark:text-red-300 text-xs">${day}</div>`;
+                    th.classList.add('bg-red-100', 'border-red-300', 'dark:bg-red-950/70', 'dark:border-red-800');
+                    th.innerHTML = `<div class="text-[11px] font-extrabold text-red-800 dark:text-red-300 tracking-tight">${letter}</div><div class="font-black text-red-950 dark:text-red-100 text-xs sm:text-sm">${day}</div>`;
                 } else if (dayType === 'weekend') {
-                    th.classList.add('bg-purple-100', 'text-purple-700', 'border-purple-200', 'dark:bg-purple-950/40', 'dark:text-purple-300');
-                    th.innerHTML = `<div class="text-[10px] font-bold text-purple-600 dark:text-purple-400">${letter}</div><div class="font-bold text-purple-700 dark:text-purple-300 text-xs">${day}</div>`;
+                    th.classList.add('bg-purple-100', 'border-purple-300', 'dark:bg-purple-950/70', 'dark:border-purple-800');
+                    th.innerHTML = `<div class="text-[11px] font-extrabold text-purple-800 dark:text-purple-300 tracking-tight">${letter}</div><div class="font-black text-purple-950 dark:text-purple-100 text-xs sm:text-sm">${day}</div>`;
                 } else {
-                    th.innerHTML = `<div class="text-[10px] font-medium text-slate-500 dark:text-slate-400">${letter}</div><div class="font-bold text-slate-700 dark:text-slate-300 text-xs">${day}</div>`;
+                    th.classList.add('bg-slate-100', 'border-slate-300', 'dark:bg-slate-800', 'dark:border-slate-700');
+                    th.innerHTML = `<div class="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 tracking-tight">${letter}</div><div class="font-black text-slate-900 dark:text-white text-xs sm:text-sm">${day}</div>`;
                 }
                 
                 headDaysRow.appendChild(th);
@@ -1679,7 +1680,7 @@
                 };
 
                 const tdWorker = document.createElement('td');
-                tdWorker.className = "p-2 text-left font-bold text-slate-800 dark:text-slate-200 sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-200 dark:border-slate-700 shadow-xs";
+                tdWorker.className = "p-2 text-left font-extrabold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-slate-300 dark:border-slate-700 shadow-xs text-xs sm:text-sm";
                 tdWorker.textContent = worker;
                 tr.appendChild(tdWorker);
 
@@ -1690,29 +1691,29 @@
                     const td = document.createElement('td');
                     td.className = "p-1 border-r border-slate-200 dark:border-slate-700 font-medium text-center text-[11px]";
 
-                    if (dayType === 'holiday') td.classList.add('bg-red-50/40', 'dark:bg-red-950/20');
-                    else if (dayType === 'weekend') td.classList.add('bg-purple-50/30', 'dark:bg-purple-950/20');
+                    if (dayType === 'holiday') td.classList.add('bg-red-50/50', 'dark:bg-red-950/30');
+                    else if (dayType === 'weekend') td.classList.add('bg-purple-50/40', 'dark:bg-purple-950/30');
 
                     const dayData = record.days[day] || record.days[day.toString()];
 
                     if (dayData) {
                         if (dayData.isVacation) {
-                            td.className += " bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200 font-extrabold shadow-xs p-1";
-                            td.innerHTML = `<span class="text-xs font-black">V</span>`;
+                            td.className += " bg-amber-100 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100 font-black shadow-xs p-1 border border-amber-300 dark:border-amber-800";
+                            td.innerHTML = `<span class="text-xs font-black text-amber-950 dark:text-amber-100">V</span>`;
                         } else {
-                            td.className += " bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-200 font-bold shadow-xs p-1";
+                            td.className += " bg-blue-100/90 text-blue-950 dark:bg-blue-900/80 dark:text-blue-100 font-black shadow-xs p-1 border border-blue-300 dark:border-blue-800";
                             dailyHoursSums[day] += (dayData.hours || 0);
 
                             let shiftStr = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
                             if (shiftStr.includes(' - ')) {
                                 let parts = shiftStr.split(' - ');
-                                td.innerHTML = `<div class="text-[9px] leading-tight font-extrabold">${parts[0]}<div class="text-[8px] opacity-40 font-normal my-[-2px]">-</div>${parts[1]}</div>`;
+                                td.innerHTML = `<div class="text-[10px] leading-tight font-black text-blue-950 dark:text-blue-100 tracking-tight">${parts[0]}<div class="text-[8px] font-bold text-blue-700 dark:text-blue-300 my-[-2px]">-</div>${parts[1]}</div>`;
                             } else {
-                                td.innerHTML = `<div class="text-[10px] font-extrabold">${shiftStr}</div>`;
+                                td.innerHTML = `<div class="text-[10px] font-black text-blue-950 dark:text-blue-100">${shiftStr}</div>`;
                             }
                         }
                     } else {
-                        td.innerHTML = `<span class="text-slate-300 dark:text-slate-600 font-medium text-xs">-</span>`;
+                        td.innerHTML = `<span class="text-slate-400 dark:text-slate-500 font-bold text-xs">-</span>`;
                     }
 
                     tr.appendChild(td);
@@ -1723,15 +1724,28 @@
 
             const footRow = document.getElementById('teamTableFootTotals');
             footRow.innerHTML = `
-                <td class="p-2.5 text-left sticky left-0 bg-indigo-900 z-10 border-r border-indigo-800 font-extrabold text-white">
+                <td class="p-2 text-left sticky left-0 bg-slate-200 dark:bg-slate-800 z-10 border-r border-slate-300 dark:border-slate-700 font-black text-slate-800 dark:text-slate-200 text-xs">
                     SUMA HORAS / DÍA
                 </td>
             `;
 
             for (let day = 1; day <= daysInMonth; day++) {
+                const dayType = getDayType(2027, selectedMonth, day);
                 const tdTotal = document.createElement('td');
                 const totalVal = dailyHoursSums[day];
-                tdTotal.className = `p-1.5 text-center font-black border-r border-indigo-800 ${totalVal > 0 ? 'bg-indigo-800 text-amber-300' : 'text-indigo-400'}`;
+
+                let bgClass = "bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700";
+                let textClass = "text-slate-800 dark:text-slate-200";
+
+                if (dayType === 'holiday') {
+                    bgClass = "bg-red-100 dark:bg-red-950/80 border-r border-red-300 dark:border-red-800";
+                    textClass = "text-red-800 dark:text-red-300";
+                } else if (dayType === 'weekend') {
+                    bgClass = "bg-purple-100 dark:bg-purple-950/80 border-r border-purple-300 dark:border-purple-800";
+                    textClass = "text-purple-800 dark:text-purple-300";
+                }
+
+                tdTotal.className = `p-1.5 text-center font-black ${bgClass} ${textClass}`;
                 tdTotal.textContent = totalVal > 0 ? `${totalVal}h` : '0';
                 footRow.appendChild(tdTotal);
             }
