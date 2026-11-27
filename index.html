@@ -72,7 +72,7 @@
             </div>
             
             <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openAnnualModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
+                <button onclick="openAnnualModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-500">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Acumulado Anual</span>
                 </button>
@@ -1427,7 +1427,10 @@
 
         // --- RENDER VISTA INDIVIDUAL (LUNES A DOMINGO + COLORES + 5,23h POR V) ---
         function renderIndividualView() {
-            const selectedWorker = document.getElementById('workerSelect').value || workersList[0];
+            if (!workersList || workersList.length === 0) {
+                if (typeof extractWorkersList === 'function') extractWorkersList();
+            }
+            const selectedWorker = (document.getElementById('workerSelect') && document.getElementById('workerSelect').value) || (workersList && workersList[0]) || '';
             const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
 
             document.getElementById('employeeNameTitle').textContent = selectedWorker || "Empleado";
@@ -1525,7 +1528,7 @@
                     }
                 } else {
                     card.className += " shift-off opacity-75 hover:opacity-100";
-                    if (dayType === holiday) {
+                    if (dayType === 'holiday') {
                         card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
@@ -1534,7 +1537,7 @@
                             </div>
                             <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">Libre</div>
                         `;
-                    } else if (dayType === weekend) {
+                    } else if (dayType === 'weekend') {
                         card.className += " border border-purple-200 dark:border-purple-900/40 bg-purple-50/30 dark:bg-purple-950/30";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
@@ -1572,7 +1575,8 @@
 
             // Ocultar tarjetas de Vacaciones y Horas Extra para Refuerzo
             const upperWorker = (selectedWorker || '').toUpperCase();
-            const isRefuerzo = upperWorker.includes('REFUERZO') || selectedWorker.includes('?');
+            const safeWorker = selectedWorker || '';
+            const isRefuerzo = upperWorker.includes('REFUERZO') || safeWorker.includes('?');
 
             const extraHoursCard = document.getElementById('statExtraHoursCard');
             const vacationDaysCard = document.getElementById('statVacationDaysCard');
@@ -1849,14 +1853,14 @@
                 }
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800 transition";
+                tr.className = "border-b border-slate-100 dark:border-slate-800 transition";
                 tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-900 dark:text-white">${worker}</td>
+                    <td class="p-3 font-black text-red-600 dark:text-red-400">${worker}</td>
                     <td class="p-3 text-center font-extrabold text-blue-900 dark:text-blue-300">${Math.round(totalComputedHours * 100) / 100}h</td>
                     <td class="p-3 text-center font-extrabold text-emerald-800 dark:text-emerald-300">${Math.round(totalExtraHours * 100) / 100}h</td>
-                    <td class="p-3 text-center font-black text-slate-900 dark:text-white">${totalServicesCount}</td>
+                    <td class="p-3 text-center font-black text-orange-600 dark:text-orange-400">${totalServicesCount}</td>
                     <td class="p-3 text-center font-black text-amber-800 dark:text-amber-300">${totalVacationDays}d</td>
-                    <td class="p-3 text-center font-bold text-slate-800 dark:text-slate-200">${quotaText}</td>
+                    <td class="p-3 text-center font-black text-pink-600 dark:text-pink-400">${quotaText}</td>
                 `;
                 tbody.appendChild(tr);
             });
