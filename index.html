@@ -1524,31 +1524,31 @@
                         }
                     }
                 } else {
-                    card.className += " shift-off";
+                    card.className += " shift-off opacity-30 hover:opacity-100";
                     if (dayType === 'holiday') {
-                        card.className += " border-2 border-red-300 bg-red-50/30";
+                        card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-black text-xs text-red-700">${day} <span class="text-[10px] font-normal text-red-400">${letter}</span></span>
-                                ${headerBadge}
+                                <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">${day} <span class="text-[10px] font-normal text-slate-400">${letter}</span></span>
+                                <span class="text-[8px] font-semibold text-red-500/60 dark:text-red-400/50">Festivo</span>
                             </div>
-                            <div class="text-[11px] text-red-400 font-medium mt-1">Libre</div>
+                            <div class="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-1">Libre</div>
                         `;
                     } else if (dayType === 'weekend') {
-                        card.className += " border border-purple-200 bg-purple-50/20 opacity-70";
+                        card.className += " border border-purple-200/50 dark:border-purple-900/30 bg-purple-50/20 dark:bg-purple-950/20";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-purple-700">${day} <span class="text-[10px] font-normal text-purple-400">${letter}</span></span>
+                                <span class="font-bold text-xs text-purple-700/60 dark:text-purple-400/60">${day} <span class="text-[10px] font-normal text-purple-400/50">${letter}</span></span>
                             </div>
-                            <div class="text-[11px] text-purple-400 font-medium mt-1">Libre</div>
+                            <div class="text-[11px] text-purple-400/60 dark:text-purple-500/60 font-medium mt-1">Libre</div>
                         `;
                     } else {
-                        card.className += " border border-slate-200 bg-slate-50/60 opacity-50";
+                        card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-slate-500">${day} <span class="text-[10px] font-normal text-slate-400">${letter}</span></span>
+                                <span class="font-bold text-xs text-slate-500 dark:text-slate-400">${day} <span class="text-[10px] font-normal text-slate-400">${letter}</span></span>
                             </div>
-                            <div class="text-[11px] text-slate-400 font-medium mt-1">Libre</div>
+                            <div class="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-1">Libre</div>
                         `;
                     }
                 }
@@ -1701,15 +1701,30 @@
                             td.className += " bg-amber-100 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100 font-black shadow-xs p-1 border border-amber-300 dark:border-amber-800";
                             td.innerHTML = `<span class="text-xs font-black text-amber-950 dark:text-amber-100">V</span>`;
                         } else {
-                            td.className += " bg-blue-100/90 text-blue-950 dark:bg-blue-900/80 dark:text-blue-100 font-black shadow-xs p-1 border border-blue-300 dark:border-blue-800";
                             dailyHoursSums[day] += (dayData.hours || 0);
+
+                            let bgClass = "bg-blue-100/90 dark:bg-blue-950/80 border-blue-300 dark:border-blue-800";
+                            let textColorClass = "text-blue-950 dark:text-blue-100";
+                            let dashColorClass = "text-blue-700 dark:text-blue-300";
+
+                            if (dayType === 'holiday') {
+                                bgClass = "bg-red-100/90 dark:bg-red-950/80 border-red-300 dark:border-red-800";
+                                textColorClass = "text-red-900 dark:text-red-200 font-black";
+                                dashColorClass = "text-red-700 dark:text-red-400";
+                            } else if (dayType === 'weekend') {
+                                bgClass = "bg-purple-100/90 dark:bg-purple-950/80 border-purple-300 dark:border-purple-800";
+                                textColorClass = "text-purple-950 dark:text-purple-200 font-black";
+                                dashColorClass = "text-purple-700 dark:text-purple-400";
+                            }
+
+                            td.className += ` ${bgClass} font-black shadow-xs p-1 border`;
 
                             let shiftStr = dayData.shift || (dayData.hours ? `${dayData.hours}h` : "T");
                             if (shiftStr.includes(' - ')) {
                                 let parts = shiftStr.split(' - ');
-                                td.innerHTML = `<div class="text-[10px] leading-tight font-black text-blue-950 dark:text-blue-100 tracking-tight">${parts[0]}<div class="text-[8px] font-bold text-blue-700 dark:text-blue-300 my-[-2px]">-</div>${parts[1]}</div>`;
+                                td.innerHTML = `<div class="text-[10px] leading-tight font-black ${textColorClass} tracking-tight">${parts[0]}<div class="text-[8px] font-bold ${dashColorClass} my-[-2px]">-</div>${parts[1]}</div>`;
                             } else {
-                                td.innerHTML = `<div class="text-[10px] font-black text-blue-950 dark:text-blue-100">${shiftStr}</div>`;
+                                td.innerHTML = `<div class="text-[10px] font-black ${textColorClass}">${shiftStr}</div>`;
                             }
                         }
                     } else {
