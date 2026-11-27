@@ -178,10 +178,10 @@
                     </div>
 
                     <!-- 4. Vacaciones Año -->
-                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
+                    <div id="statAnnualVacationCard" class="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 text-center flex flex-col justify-between shadow-xs">
                         <span class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Vacaciones Año</span>
                         <span id="statAnnualVacation" class="text-lg font-extrabold text-indigo-900 my-0.5">0 / 31</span>
-                        <span id="statAnnualVacationSub" class="block text-[9px] text-indigo-700 font-medium">Solicitadas 0 | Faltan 31</span>
+                        <span id="statAnnualVacationSub" class="block text-[9px] text-indigo-700 font-medium">Faltan 31 días por solicitar</span>
                     </div>
 
                     <!-- 5. Servicios Mes -->
@@ -1536,20 +1536,38 @@
             // 3. Vacaciones Mes
             document.getElementById('statVacationDays').textContent = `${totalVacationDays}d`;
 
-            // 4. Vacaciones Año (31 días al año)
-            let annualVacationTaken = 0;
-            scheduleData.forEach(item => {
-                if (item.worker === selectedWorker) {
-                    for (let d in item.days) {
-                        if (item.days[d] && item.days[d].isVacation) {
-                            annualVacationTaken++;
+            // 4. Vacaciones Año (Personalizado por trabajador: Jose Luis = 12, Refuerzo = oculto, Otros = 31)
+            const upperWorker = (selectedWorker || '').toUpperCase();
+            const isRefuerzo = upperWorker.includes('REFUERZO') || selectedWorker.includes('?');
+            const annualVacationCard = document.getElementById('statAnnualVacationCard');
+
+            if (isRefuerzo) {
+                if (annualVacationCard) annualVacationCard.classList.add('hidden');
+            } else {
+                if (annualVacationCard) annualVacationCard.classList.remove('hidden');
+                
+                let annualQuota = 31;
+                if (upperWorker.includes('JOSE LUIS')) {
+                    annualQuota = 12;
+                }
+
+                let annualVacationTaken = 0;
+                const targetWorkerNorm = (selectedWorker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                scheduleData.forEach(item => {
+                    const itemWorkerNorm = (item.worker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                    if (itemWorkerNorm === targetWorkerNorm) {
+                        for (let d in item.days) {
+                            if (item.days[d] && item.days[d].isVacation) {
+                                annualVacationTaken++;
+                            }
                         }
                     }
-                }
-            });
-            let annualVacationRemaining = Math.max(0, 31 - annualVacationTaken);
-            document.getElementById('statAnnualVacation').textContent = `${annualVacationTaken} / 31`;
-            document.getElementById('statAnnualVacationSub').textContent = `Solicitadas ${annualVacationTaken} | Faltan ${annualVacationRemaining}`;
+                });
+
+                let annualVacationRemaining = Math.max(0, annualQuota - annualVacationTaken);
+                document.getElementById('statAnnualVacation').textContent = `${annualVacationTaken} / ${annualQuota}`;
+                document.getElementById('statAnnualVacationSub').textContent = `Faltan ${annualVacationRemaining} días por solicitar`;
+            }
 
             // 5. Servicios Mes
             document.getElementById('statServiceDays').textContent = `${totalServiceDays}`;
