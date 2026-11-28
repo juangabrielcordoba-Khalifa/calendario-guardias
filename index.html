@@ -1356,57 +1356,34 @@
         // Inicialización de la Aplicación
         document.addEventListener('DOMContentLoaded', () => {
             scheduleData = defaultScheduleData;
-            initApp();
+            if (localStorage.getItem('theme_dark') === 'true') {
+                document.body.classList.add('dark');
+                if (typeof updateDarkModeUI === 'function') updateDarkModeUI(true);
+            }
+            if (document.getElementById('sheetsUrlInput') && typeof currentSheetsUrl !== 'undefined' && currentSheetsUrl) {
+                document.getElementById('sheetsUrlInput').value = currentSheetsUrl;
+            }
+            if (typeof initApp === 'function') {
+                initApp();
+            } else if (typeof renderApp === 'function') {
+                renderApp();
+            }
             if (typeof currentSheetsUrl !== 'undefined' && currentSheetsUrl) {
-                if (document.getElementById('sheetsUrlInput')) {
-                    document.getElementById('sheetsUrlInput').value = currentSheetsUrl;
-                }
                 try {
                     loadFromGoogleSheets(currentSheetsUrl);
                 } catch(e) {
-                    console.log('Offline / local mode');
+                    console.log('Google Sheets load error/offline:', e);
                 }
             }
         });
 
-        
-        
-        function autoSelectAppropriateMonth() {
-            const monthSelect = document.getElementById('monthSelect');
-            if (!monthSelect) return;
-
-            const now = new Date();
-            const currentYear = now.getFullYear(); // e.g. 2026
-            const currentRealMonth = now.getMonth() + 1; // 1 - 12 (11 para Noviembre)
-
-            let targetMonth = 1; // Por defecto Enero
-
-            // El cuadrante cargado es del año 2027.
-            // Solo seleccionamos el mes en curso si estamos en el año 2027
-            // Y ese mes tiene guardias/días válidos cargados en scheduleData.
-            if (currentYear === 2027 && typeof scheduleData !== 'undefined' && scheduleData) {
-                const hasCurrentMonthData = scheduleData.some(item => 
-                    parseInt(item.month) === parseInt(currentRealMonth) && 
-                    item.days && 
-                    Object.values(item.days).some(d => d && (d.shift || d.isVacation || d.hours > 0))
-                );
-                if (hasCurrentMonthData) {
-                    targetMonth = currentRealMonth;
-                }
-            }
-
-            monthSelect.value = targetMonth.toString();
-        }
-
         function initApp() {
-            if (!scheduleData || scheduleData.length === 0) { scheduleData = defaultScheduleData; }
             if (localStorage.getItem('theme_dark') === 'true') {
                 document.body.classList.add('dark');
                 updateDarkModeUI(true);
             }
             extractWorkersList();
             populateWorkerDropdown();
-            autoSelectAppropriateMonth();
             renderCurrentView();
             if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
         }
@@ -1495,21 +1472,15 @@
             }
 
             const dayLetters = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            const now = new Date();
-            const currentRealDay = now.getDate();
-            const currentRealMonth = now.getMonth() + 1;
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayData = record.days[day] || record.days[day.toString()];
                 const dayType = getDayType(2027, selectedMonth, day);
                 const date = new Date(2027, selectedMonth - 1, day);
                 const letter = dayLetters[date.getDay()];
-                const isToday = (day === currentRealDay && selectedMonth === currentRealMonth);
-                const dayDisplay = isToday ? `<span class="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1 rounded-full bg-[#00ff66] text-slate-950 font-black text-xs shadow-[0_0_10px_#00ff66] ring-2 ring-[#00ff66] animate-pulse">${day}</span>` : `${day}`;
 
                 const card = document.createElement('div');
                 card.className = "p-2.5 rounded-xl flex flex-col justify-between h-24 transition hover:shadow-md relative overflow-hidden font-sans";
-                if (isToday) { card.className += " ring-2 ring-[#00ff66] shadow-[0_0_15px_rgba(0,255,102,0.6)] z-10 scale-[1.02]"; }
 
                 let headerBadge = '';
                 let dayNumberStyle = 'text-slate-800 font-bold';
@@ -1527,7 +1498,7 @@
                         card.className += " border-2 border-amber-500 bg-amber-50/90 shadow-xs";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-black text-xs ${dayNumberStyle}">${dayDisplay} <span class="text-[10px] font-semibold text-slate-500">${letter}</span></span>
+                                <span class="font-black text-xs ${dayNumberStyle}">${day} <span class="text-[10px] font-semibold text-slate-500">${letter}</span></span>
                                 ${headerBadge || '<span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white shadow-xs">VAC</span>'}
                             </div>
                             <div class="mt-1">
@@ -1543,7 +1514,7 @@
                             card.className += " border-2 border-red-600 bg-red-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-red-700">${dayDisplay} <span class="text-[10px] font-semibold text-red-500">${letter}</span></span>
+                                    <span class="font-black text-xs text-red-700">${day} <span class="text-[10px] font-semibold text-red-500">${letter}</span></span>
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-600 text-white shadow-xs">FEST</span>
                                 </div>
                                 <div class="text-xs font-black text-red-900 mt-1">${dayData.shift}</div>
@@ -1552,7 +1523,7 @@
                             card.className += " border-2 border-purple-600 bg-purple-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-purple-800">${dayDisplay} <span class="text-[10px] font-semibold text-purple-600">${letter}</span></span>
+                                    <span class="font-black text-xs text-purple-800">${day} <span class="text-[10px] font-semibold text-purple-600">${letter}</span></span>
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white shadow-xs">${dayData.hours}h</span>
                                 </div>
                                 <div class="text-xs font-extrabold text-purple-950 mt-1">${dayData.shift}</div>
@@ -1561,7 +1532,7 @@
                             card.className += " border-2 border-blue-600 bg-blue-50/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-blue-900">${dayDisplay} <span class="text-[10px] font-semibold text-blue-600">${letter}</span></span>
+                                    <span class="font-black text-xs text-blue-900">${day} <span class="text-[10px] font-semibold text-blue-600">${letter}</span></span>
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white shadow-xs">${dayData.hours}h</span>
                                 </div>
                                 <div class="text-xs font-bold text-blue-950 mt-1">${dayData.shift}</div>
@@ -1574,7 +1545,7 @@
                         card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-slate-700 dark:text-slate-300">${dayDisplay} <span class="text-[10px] font-normal text-slate-500">${letter}</span></span>
+                                <span class="font-bold text-xs text-slate-700 dark:text-slate-300">${day} <span class="text-[10px] font-normal text-slate-500">${letter}</span></span>
                                 <span class="text-[8px] font-bold text-red-600 dark:text-red-400">Festivo</span>
                             </div>
                             <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">Libre</div>
@@ -1583,7 +1554,7 @@
                         card.className += " border border-purple-200 dark:border-purple-900/40 bg-purple-50/30 dark:bg-purple-950/30";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-purple-800 dark:text-purple-300">${dayDisplay} <span class="text-[10px] font-normal text-purple-500">${letter}</span></span>
+                                <span class="font-bold text-xs text-purple-800 dark:text-purple-300">${day} <span class="text-[10px] font-normal text-purple-500">${letter}</span></span>
                             </div>
                             <div class="text-[11px] text-purple-600 dark:text-purple-400 font-medium mt-1">Libre</div>
                         `;
@@ -1591,7 +1562,7 @@
                         card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-slate-700 dark:text-slate-300">${dayDisplay} <span class="text-[10px] font-normal text-slate-500">${letter}</span></span>
+                                <span class="font-bold text-xs text-slate-700 dark:text-slate-300">${day} <span class="text-[10px] font-normal text-slate-500">${letter}</span></span>
                             </div>
                             <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">Libre</div>
                         `;
@@ -1679,6 +1650,10 @@
         }
 
         function renderTeamView() {
+            const now = new Date();
+            const currentRealDay = now.getDate();
+            const currentRealMonth = now.getMonth() + 1;
+            const currentRealYear = now.getFullYear();
             const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
             const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
 
@@ -1693,8 +1668,6 @@
                 const dayType = getDayType(2027, selectedMonth, day);
                 const date = new Date(2027, selectedMonth - 1, day);
                 const letter = dayLetters[date.getDay()];
-                const isToday = (day === currentRealDay && selectedMonth === currentRealMonth);
-                const dayDisplay = isToday ? `<span class="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1 rounded-full bg-[#00ff66] text-slate-950 font-black text-xs shadow-[0_0_10px_#00ff66] ring-2 ring-[#00ff66] animate-pulse">${day}</span>` : `${day}`;
                 
                 const th = document.createElement('th');
                 th.className = "p-1 min-w-[32px] border-r text-center";
@@ -1948,6 +1921,11 @@
         }
 
         function loadFromGoogleSheets(url) {
+            if (typeof Papa === 'undefined') {
+                console.warn('PapaParse not loaded yet');
+                if (typeof initApp === 'function') initApp();
+                return;
+            }
             const finalUrl = formatGoogleSheetsUrl(url);
             document.getElementById('connectionText').innerHTML = "Cargando datos en tiempo real desde <strong>Google Sheets</strong>...";
             Papa.parse(finalUrl, {
@@ -1963,10 +1941,11 @@
                     }
                 },
                 error: function(err) {
-                    console.error(err);
+                    console.error('Google Sheets fetch error:', err);
                     if (document.getElementById('connectionText')) {
-                        document.getElementById('connectionText').innerHTML = "🟢 Conectado en vista interactiva local (Google Sheets guardado)";
+                        document.getElementById('connectionText').innerHTML = "🟢 Vista interactiva local con datos sincronizados";
                     }
+                    if (typeof initApp === 'function') initApp();
                 }
             });
         }
