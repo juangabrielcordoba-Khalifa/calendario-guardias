@@ -80,7 +80,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <i data-lucide="calendar" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
-                <select id="monthSelect" onchange="renderApp()" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm py-1.5 px-3 rounded-xl border-0 focus:ring-2 focus:ring-indigo-500">
+                <select id="monthSelect" onchange="userHasSelectedMonth = true; renderApp()" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm py-1.5 px-3 rounded-xl border-0 focus:ring-2 focus:ring-indigo-500">
                     <option value="1">Enero 2027</option>
                     <option value="2">Febrero 2027</option>
                     <option value="3">Marzo 2027</option>
@@ -1231,6 +1231,38 @@
         let workersList = [];
         let currentWorker = '';
 
+        
+        var userHasSelectedMonth = false;
+
+        function autoSelectAppropriateMonth() {
+            if (window.userHasSelectedMonth) return;
+            const monthSelect = document.getElementById('monthSelect');
+            if (!monthSelect) return;
+
+            const currentRealMonth = new Date().getMonth() + 1; // 1 - 12
+            const hasCurrentMonthData = scheduleData.some(item => 
+                item.month === currentRealMonth && 
+                item.days && 
+                Object.keys(item.days).length > 0
+            );
+
+            if (hasCurrentMonthData) {
+                monthSelect.value = currentRealMonth;
+            } else {
+                const availableMonths = Array.from(new Set(
+                    scheduleData
+                        .filter(item => item.days && Object.keys(item.days).length > 0)
+                        .map(item => item.month)
+                )).sort((a, b) => a - b);
+
+                if (availableMonths.length > 0) {
+                    monthSelect.value = availableMonths[0];
+                } else {
+                    monthSelect.value = 1;
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const cachedRaw = localStorage.getItem('cached_csv_raw');
@@ -1249,6 +1281,7 @@
             }
 
             extractWorkersList();
+            autoSelectAppropriateMonth();
 
             if (localStorage.getItem('theme_dark') === 'true') {
                 document.body.classList.add('dark');
@@ -1628,6 +1661,7 @@
             if (parsedSchedule.length > 0) {
                 scheduleData = parsedSchedule;
                 extractWorkersList();
+                autoSelectAppropriateMonth();
                 renderApp();
             }
         }
