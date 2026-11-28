@@ -85,6 +85,14 @@
                     <option value="2">Febrero 2027</option>
                     <option value="3">Marzo 2027</option>
                     <option value="4">Abril 2027</option>
+                    <option value="5">Mayo 2027</option>
+                    <option value="6">Junio 2027</option>
+                    <option value="7">Julio 2027</option>
+                    <option value="8">Agosto 2027</option>
+                    <option value="9">Septiembre 2027</option>
+                    <option value="10">Octubre 2027</option>
+                    <option value="11">Noviembre 2027</option>
+                    <option value="12">Diciembre 2027</option>
                 </select>
             </div>
             <div id="syncBadge" class="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
@@ -1224,7 +1232,22 @@
         let currentWorker = '';
 
         document.addEventListener('DOMContentLoaded', () => {
-            scheduleData = defaultScheduleData;
+            try {
+                const cachedRaw = localStorage.getItem('cached_csv_raw');
+                if (cachedRaw) {
+                    const parsedData = JSON.parse(cachedRaw);
+                    if (parsedData && parsedData.length > 0) {
+                        parseCustomCSV(parsedData);
+                    } else {
+                        scheduleData = defaultScheduleData;
+                    }
+                } else {
+                    scheduleData = defaultScheduleData;
+                }
+            } catch(e) {
+                scheduleData = defaultScheduleData;
+            }
+
             extractWorkersList();
 
             if (localStorage.getItem('theme_dark') === 'true') {
@@ -1239,8 +1262,8 @@
                 openWorkerSelectorModal();
             }
 
-            loadFromGoogleSheets(DEFAULT_SHEETS_URL);
             renderApp();
+            loadFromGoogleSheets(DEFAULT_SHEETS_URL);
             if (window.lucide) lucide.createIcons();
         });
 
@@ -1482,6 +1505,9 @@
                 skipEmptyLines: false,
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
+                        try {
+                            localStorage.setItem('cached_csv_raw', JSON.stringify(results.data));
+                        } catch(e){}
                         parseCustomCSV(results.data);
                     }
                 },
