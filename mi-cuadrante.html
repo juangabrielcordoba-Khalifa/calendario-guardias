@@ -1377,15 +1377,21 @@
             }
 
             const dayLetters = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const now = new Date();
+            const currentRealDay = now.getDate();
+            const currentRealMonth = now.getMonth() + 1;
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayData = record.days[day] || record.days[day.toString()];
                 const dayType = getDayType(2027, selectedMonth, day);
                 const date = new Date(2027, selectedMonth - 1, day);
                 const letter = dayLetters[date.getDay()];
+                const isToday = (day === currentRealDay && selectedMonth === currentRealMonth);
+                const dayDisplay = isToday ? `<span class="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1 rounded-full bg-[#00ff66] text-slate-950 font-black text-xs shadow-[0_0_10px_#00ff66] ring-2 ring-[#00ff66] animate-pulse">${day}</span>` : `${day}`;
 
                 const card = document.createElement('div');
                 card.className = "p-1.5 rounded-xl flex flex-col justify-between h-20 transition relative overflow-hidden font-sans";
+                if (isToday) { card.className += " ring-2 ring-[#00ff66] shadow-[0_0_15px_rgba(0,255,102,0.6)] z-10 scale-[1.02]"; }
 
                 let headerBadge = '';
                 let dayNumberStyle = 'text-slate-800 dark:text-slate-200 font-bold';
@@ -1403,7 +1409,7 @@
                         card.className += " border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/80 shadow-xs";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-black text-xs ${dayNumberStyle}">${day} <span class="text-[9px] font-normal text-slate-500">${letter}</span></span>
+                                <span class="font-black text-xs ${dayNumberStyle}">${dayDisplay} <span class="text-[9px] font-normal text-slate-500">${letter}</span></span>
                                 ${headerBadge || '<span class="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-amber-500 text-white">VAC</span>'}
                             </div>
                             <div class="mt-0.5">
@@ -1419,7 +1425,7 @@
                             card.className += " border-2 border-red-600 bg-red-50/90 dark:bg-red-950/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-red-700 dark:text-red-300">${day} <span class="text-[9px] font-normal text-red-500">${letter}</span></span>
+                                    <span class="font-black text-xs text-red-700 dark:text-red-300">${dayDisplay} <span class="text-[9px] font-normal text-red-500">${letter}</span></span>
                                     <span class="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-red-600 text-white">FEST</span>
                                 </div>
                                 <div class="text-[10px] font-black text-red-900 dark:text-red-200 mt-0.5 leading-tight">${dayData.shift}</div>
@@ -1428,7 +1434,7 @@
                             card.className += " border-2 border-purple-600 bg-purple-50/90 dark:bg-purple-950/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-purple-800 dark:text-purple-300">${day} <span class="text-[9px] font-normal text-purple-600">${letter}</span></span>
+                                    <span class="font-black text-xs text-purple-800 dark:text-purple-300">${dayDisplay} <span class="text-[9px] font-normal text-purple-600">${letter}</span></span>
                                     <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-purple-600 text-white">${dayData.hours}h</span>
                                 </div>
                                 <div class="text-[10px] font-black text-purple-950 dark:text-purple-200 mt-0.5 leading-tight">${dayData.shift}</div>
@@ -1437,7 +1443,7 @@
                             card.className += " border-2 border-blue-600 bg-blue-50/90 dark:bg-blue-950/80 shadow-xs";
                             card.innerHTML = `
                                 <div class="flex justify-between items-center">
-                                    <span class="font-black text-xs text-blue-900 dark:text-blue-200">${day} <span class="text-[9px] font-normal text-blue-600">${letter}</span></span>
+                                    <span class="font-black text-xs text-blue-900 dark:text-blue-200">${dayDisplay} <span class="text-[9px] font-normal text-blue-600">${letter}</span></span>
                                     <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-blue-600 text-white">${dayData.hours}h</span>
                                 </div>
                                 <div class="text-[10px] font-black text-blue-950 dark:text-blue-100 mt-0.5 leading-tight">${dayData.shift}</div>
@@ -1450,7 +1456,7 @@
                         card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">${day} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
+                                <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">${dayDisplay} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
                                 <span class="text-[8px] font-semibold text-red-500/60 dark:text-red-400/50">Festivo</span>
                             </div>
                             <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Libre</div>
@@ -1459,7 +1465,7 @@
                         card.className += " border border-purple-200/50 dark:border-purple-900/30 bg-purple-50/20 dark:bg-purple-950/20";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-purple-700/60 dark:text-purple-400/60">${day} <span class="text-[9px] font-normal text-purple-400/50">${letter}</span></span>
+                                <span class="font-bold text-xs text-purple-700/60 dark:text-purple-400/60">${dayDisplay} <span class="text-[9px] font-normal text-purple-400/50">${letter}</span></span>
                             </div>
                             <div class="text-[10px] text-purple-400/60 dark:text-purple-500/60 font-medium mt-0.5">Libre</div>
                         `;
@@ -1467,7 +1473,7 @@
                         card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50";
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <span class="font-bold text-xs text-slate-600 dark:text-slate-300">${day} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
+                                <span class="font-bold text-xs text-slate-600 dark:text-slate-300">${dayDisplay} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
                             </div>
                             <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Libre</div>
                         `;
