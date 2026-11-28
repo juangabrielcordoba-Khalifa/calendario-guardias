@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Cuadrante de Guardias</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mi Cuadrante">
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse para procesar CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .shift-worked { background-color: #eff6ff; color: #1e40af; border-color: #3b82f6; }
+        .shift-vacation { background-color: #fef3c7; color: #92400e; border-color: #f59e0b; }
+        .shift-off { background-color: #f8fafc; color: #94a3b8; border-color: #cbd5e1; }
+
+        /* Modo Noche (Dark Mode) */
+        body.dark { background-color: #0f172a !important; color: #f1f5f9 !important; }
+        body.dark header { background-color: #020617 !important; border-bottom: 1px solid #1e293b; }
+        body.dark .bg-white { background-color: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
+        body.dark .bg-slate-50 { background-color: #0f172a !important; color: #f1f5f9 !important; }
+        body.dark .bg-slate-100 { background-color: #334155 !important; color: #f8fafc !important; }
+        body.dark .text-slate-900, body.dark .text-slate-800, body.dark .text-slate-700 { color: #f8fafc !important; }
+        body.dark .text-slate-600, body.dark .text-slate-500 { color: #cbd5e1 !important; }
+        body.dark .border-slate-200, body.dark .border-slate-300 { border-color: #334155 !important; }
+        body.dark .shift-off { background-color: #1e293b !important; color: #64748b !important; border-color: #334155 !important; }
+        body.dark .shift-worked { background-color: #1e3a8a !important; color: #bfdbfe !important; border-color: #3b82f6 !important; }
+        body.dark .shift-vacation { background-color: #78350f !important; color: #fde68a !important; border-color: #d97706 !important; }
+
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 min-h-screen flex flex-col pb-8">
+
+    <!-- Header Móvil App -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="p-2 bg-indigo-600 rounded-xl shadow-inner">
+                    <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight leading-tight">Mi Cuadrante</h1>
+                    <p id="userBadgeHeader" class="text-[11px] text-indigo-200 font-medium">Cargando perfil...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button onclick="openWorkerSelectorModal()" title="Cambiar Empleado" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Perfil</span>
+                </button>
+                <button onclick="toggleDarkMode()" title="Modo Noche" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition">
+                    <i data-lucide="moon" id="darkModeIcon" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal Móvil -->
+    <main class="flex-1 max-w-md w-full mx-auto px-3 pt-3 space-y-4">
+
+        <!-- Selector de Mes y Control -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                <select id="monthSelect" onchange="renderApp()" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm py-1.5 px-3 rounded-xl border-0 focus:ring-2 focus:ring-indigo-500">
+                    <option value="1">Enero 2027</option>
+                    <option value="2">Febrero 2027</option>
+                    <option value="3">Marzo 2027</option>
+                    <option value="4">Abril 2027</option>
+                </select>
+            </div>
+            <div id="syncBadge" class="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Sincronizado</span>
+            </div>
+        </div>
+
+        <!-- Tarjeta Nombre Empleado -->
+        <div class="bg-gradient-to-r from-indigo-700 to-indigo-900 text-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-200">Horario Personal</span>
+                <h2 id="employeeNameTitle" class="text-xl font-black text-white mt-0.5">...</h2>
+                <p id="calendarMonthTitle" class="text-xs text-indigo-200 mt-0.5">Enero 2027</p>
+            </div>
+            <button onclick="openWorkerSelectorModal()" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold backdrop-blur-xs transition">
+                Cambiar
+            </button>
+        </div>
+
+        <!-- Métricas Móviles -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <!-- 1. Horas Totales Mes -->
+            <div id="statWorkedHoursCard" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-center flex flex-col justify-between shadow-xs">
+                <span class="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight">Horas Totales</span>
+                <span id="statWorkedHours" class="text-lg font-black text-blue-900 dark:text-blue-200 my-0.5">0h</span>
+                <span class="block text-[9px] text-blue-700 dark:text-blue-300 font-medium">(Incluye 5,23h / V)</span>
+            </div>
+
+            <!-- 2. Horas Extra Mes -->
+            <div id="statExtraHoursCard" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-center flex flex-col justify-between shadow-xs">
+                <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">Horas Extra</span>
+                <span id="statExtraHours" class="text-lg font-black text-emerald-900 dark:text-emerald-200 my-0.5">0h</span>
+                <span class="block text-[9px] text-emerald-700 dark:text-emerald-300 font-medium">(Exceso > 162h)</span>
+            </div>
+
+            <!-- 3. Vacaciones Mes -->
+            <div id="statVacationDaysCard" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-center flex flex-col justify-between shadow-xs">
+                <span class="block text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tight">Vacaciones Mes</span>
+                <span id="statVacationDays" class="text-lg font-black text-amber-900 dark:text-amber-200 my-0.5">0d</span>
+                <span class="block text-[9px] text-amber-700 dark:text-amber-300 font-medium">Este mes</span>
+            </div>
+
+            <!-- 4. Vacaciones Año -->
+            <div id="statAnnualVacationCard" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-center flex flex-col justify-between shadow-xs">
+                <span class="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">Vacaciones Año</span>
+                <span id="statAnnualVacation" class="text-lg font-black text-indigo-900 dark:text-indigo-200 my-0.5">0 / 31</span>
+                <span id="statAnnualVacationSub" class="block text-[9px] text-indigo-700 dark:text-indigo-300 font-medium">Faltan 31d</span>
+            </div>
+
+            <!-- 5. Servicios Mes -->
+            <div id="statServiceDaysCard" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-center flex flex-col justify-between shadow-xs col-span-2 sm:col-span-1">
+                <span class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Servicios / Guardias</span>
+                <span id="statServiceDays" class="text-lg font-black text-slate-900 dark:text-white my-0.5">0</span>
+                <span class="block text-[9px] text-slate-500 font-medium">Días trabajados</span>
+            </div>
+        </div>
+
+        <!-- Calendario Estructurado Móvil -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-700 p-3">
+            <!-- Encabezado de Días de la Semana -->
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+                <div class="py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">Lun</div>
+                <div class="py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">Mar</div>
+                <div class="py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">Mié</div>
+                <div class="py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">Jue</div>
+                <div class="py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">Vie</div>
+                <div class="py-1 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 rounded-lg">Sáb</div>
+                <div class="py-1 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 rounded-lg">Dom</div>
+            </div>
+
+            <!-- Rejilla de Casillas -->
+            <div id="individualGrid" class="grid grid-cols-7 gap-1.5">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Seleccionar Empleado (Primera vez o cambio) -->
+    <div id="workerModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-xs w-full p-5 space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i data-lucide="user" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Selecciona tu Perfil</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">La app recordará tu nombre en tu móvil para siempre.</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre del Trabajador:</label>
+                <select id="modalWorkerSelect" class="w-full text-xs font-bold p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                    <!-- Opciones por JS -->
+                </select>
+            </div>
+
+            <button onclick="confirmWorkerSelection()" class="w-full py-3 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition">
+                Guardar y Ver Mi Cuadrante
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_SHEETS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKva3cxdq6FBR6yGcrjpGBZERTGEXQbd03xWipLkjtacsAKCX9MOOwwt92bKhtZ5HRA7r4feBRiFAY/pub?gid=599949315&single=true&output=csv";
+
+        const monthNames = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        const defaultScheduleData = [
+    {
+        "worker": "JOSE LUIS CHAVERO",
+        "month": 1,
+        "days": {
+            "1": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "2": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "8": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "9": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "15": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "22": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "23": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "DAVID GUIJARRO",
+        "month": 1,
+        "days": {
+            "3": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "4": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "5": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "9": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "17": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "18": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "19": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "20": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "26": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JUAN GABRIEL GARCIA",
+        "month": 1,
+        "days": {
+            "1": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "2": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "3": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "7": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "11": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "12": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "13": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "23": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "REFUERZO / COBERTURA",
+        "month": 1,
+        "days": {
+            "17": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JOSE LUIS CHAVERO",
+        "month": 2,
+        "days": {
+            "5": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "12": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "13": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "19": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "20": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "26": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "88",
+                "hours": 12,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "0",
+                "hours": 12,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "64",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "DAVID GUIJARRO",
+        "month": 2,
+        "days": {
+            "1": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "2": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "3": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "4": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "7": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "8": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "9": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "11": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "17": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "18": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "19": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "20": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "180,92",
+                "hours": 12,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "4",
+                "hours": 4.0,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "104",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JUAN GABRIEL GARCIA",
+        "month": 2,
+        "days": {
+            "1": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "2": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "3": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "4": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "5": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "6": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "7": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "8": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "13": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "15": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "17": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "18": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "22": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "23": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "161,84",
+                "hours": 12,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "8",
+                "hours": 8.0,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "56",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JOSE LUIS CHAVERO",
+        "month": 3,
+        "days": {
+            "5": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "12": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "13": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "19": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "20": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "26": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "DAVID GUIJARRO",
+        "month": 3,
+        "days": {
+            "1": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "2": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "7": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "11": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "17": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "18": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "22": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "23": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JUAN GABRIEL GARCIA",
+        "month": 3,
+        "days": {
+            "3": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "4": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "7": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "8": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "9": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "13": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "15": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "26": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "REFUERZO / COBERTURA",
+        "month": 3,
+        "days": {
+            "20": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JOSE LUIS CHAVERO",
+        "month": 4,
+        "days": {
+            "2": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "3": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "9": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "16": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "17": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "30": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "88",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "DAVID GUIJARRO",
+        "month": 4,
+        "days": {
+            "1": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "4": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "5": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "6": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "10": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "11": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "12": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "13": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "14": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "15": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "16": {
+                "shift": "Vacaciones",
+                "hours": 0,
+                "isVacation": true
+            },
+            "17": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "18": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "19": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "20": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "22": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "23": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "26": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "178,15",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "JUAN GABRIEL GARCIA",
+        "month": 4,
+        "days": {
+            "3": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "4": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "7": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "8": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "11": {
+                "shift": "20:00 - 8:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "12": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "13": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "14": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "15": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "21": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "24": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "25": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "27": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "28": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "29": {
+                "shift": "22:00 - 8:00",
+                "hours": 10,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "160",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    },
+    {
+        "worker": "REFUERZO / COBERTURA",
+        "month": 4,
+        "days": {
+            "18": {
+                "shift": "8:00 - 20:00",
+                "hours": 12,
+                "isVacation": false
+            },
+            "31": {
+                "shift": "12",
+                "hours": 12,
+                "isVacation": false
+            }
+        }
+    }
+];
+
+        let scheduleData = [];
+        let workersList = [];
+        let currentWorker = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            scheduleData = defaultScheduleData;
+            extractWorkersList();
+
+            if (localStorage.getItem('theme_dark') === 'true') {
+                document.body.classList.add('dark');
+            }
+
+            const savedWorker = localStorage.getItem('my_saved_worker');
+            if (savedWorker && workersList.includes(savedWorker)) {
+                currentWorker = savedWorker;
+            } else {
+                currentWorker = workersList[0] || 'DAVID GUIJARRO';
+                openWorkerSelectorModal();
+            }
+
+            loadFromGoogleSheets(DEFAULT_SHEETS_URL);
+            renderApp();
+            if (window.lucide) lucide.createIcons();
+        });
+
+        function extractWorkersList() {
+            const set = new Set();
+            scheduleData.forEach(item => {
+                if (item.worker) set.add(item.worker);
+            });
+            workersList = Array.from(set);
+        }
+
+        function openWorkerSelectorModal() {
+            const modal = document.getElementById('workerModal');
+            const select = document.getElementById('modalWorkerSelect');
+            if (!modal || !select) return;
+
+            select.innerHTML = '';
+            workersList.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.textContent = w;
+                if (w === currentWorker) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function confirmWorkerSelection() {
+            const select = document.getElementById('modalWorkerSelect');
+            if (select && select.value) {
+                currentWorker = select.value;
+                localStorage.setItem('my_saved_worker', currentWorker);
+            }
+            document.getElementById('workerModal').classList.add('hidden');
+            renderApp();
+        }
+
+        function getDayType(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeek = date.getDay();
+            
+            const holidays2027 = [
+                '1-1', '1-6', '3-25', '3-26', '5-1', '5-27', '5-31', '9-8', '9-17', '10-12', '11-1', '12-6', '12-8', '12-25'
+            ];
+            
+            const key = `${month}-${day}`;
+            if (holidays2027.includes(key)) return 'holiday';
+            if (dayOfWeek === 0 || dayOfWeek === 6) return 'weekend';
+            return 'workday';
+        }
+
+        function renderApp() {
+            const selectedWorker = currentWorker;
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value) || 1;
+
+            document.getElementById('userBadgeHeader').textContent = selectedWorker || "Empleado";
+            document.getElementById('employeeNameTitle').textContent = selectedWorker || "Empleado";
+            document.getElementById('calendarMonthTitle').textContent = `${monthNames[selectedMonth - 1]} 2027`;
+
+            const record = scheduleData.find(item => item.worker === selectedWorker && item.month === selectedMonth) || { days: {} };
+
+            let workedHoursSum = 0;
+            let totalVacationDays = 0;
+            let totalServiceDays = 0;
+
+            const grid = document.getElementById('individualGrid');
+            grid.innerHTML = '';
+
+            const daysInMonth = new Date(2027, selectedMonth, 0).getDate();
+
+            const firstDayDate = new Date(2027, selectedMonth - 1, 1);
+            let firstDayOfWeek = firstDayDate.getDay();
+            let emptySlots = (firstDayOfWeek === 0) ? 6 : firstDayOfWeek - 1;
+
+            for (let i = 0; i < emptySlots; i++) {
+                const emptyCard = document.createElement('div');
+                emptyCard.className = "p-1.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-800/30 opacity-20 h-20";
+                grid.appendChild(emptyCard);
+            }
+
+            const dayLetters = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayData = record.days[day] || record.days[day.toString()];
+                const dayType = getDayType(2027, selectedMonth, day);
+                const date = new Date(2027, selectedMonth - 1, day);
+                const letter = dayLetters[date.getDay()];
+
+                const card = document.createElement('div');
+                card.className = "p-1.5 rounded-xl flex flex-col justify-between h-20 transition relative overflow-hidden font-sans";
+
+                let headerBadge = '';
+                let dayNumberStyle = 'text-slate-800 dark:text-slate-200 font-bold';
+                
+                if (dayType === 'holiday') {
+                    dayNumberStyle = 'text-red-700 dark:text-red-400 font-black';
+                    headerBadge = `<span class="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-red-600 text-white">FEST</span>`;
+                } else if (dayType === 'weekend') {
+                    dayNumberStyle = 'text-purple-800 dark:text-purple-300 font-bold';
+                }
+
+                if (dayData) {
+                    if (dayData.isVacation) {
+                        totalVacationDays++;
+                        card.className += " border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/80 shadow-xs";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-black text-xs ${dayNumberStyle}">${day} <span class="text-[9px] font-normal text-slate-500">${letter}</span></span>
+                                ${headerBadge || '<span class="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-amber-500 text-white">VAC</span>'}
+                            </div>
+                            <div class="mt-0.5">
+                                <div class="text-[10px] font-bold text-amber-950 dark:text-amber-100">Vacaciones</div>
+                                <div class="text-[9px] font-black text-amber-700 dark:text-amber-300">+5,23h</div>
+                            </div>
+                        `;
+                    } else {
+                        workedHoursSum += (dayData.hours || 0);
+                        totalServiceDays++;
+
+                        if (dayType === 'holiday') {
+                            card.className += " border-2 border-red-600 bg-red-50/90 dark:bg-red-950/80 shadow-xs";
+                            card.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <span class="font-black text-xs text-red-700 dark:text-red-300">${day} <span class="text-[9px] font-normal text-red-500">${letter}</span></span>
+                                    <span class="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-red-600 text-white">FEST</span>
+                                </div>
+                                <div class="text-[10px] font-black text-red-900 dark:text-red-200 mt-0.5 leading-tight">${dayData.shift}</div>
+                            `;
+                        } else if (dayType === 'weekend') {
+                            card.className += " border-2 border-purple-600 bg-purple-50/90 dark:bg-purple-950/80 shadow-xs";
+                            card.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <span class="font-black text-xs text-purple-800 dark:text-purple-300">${day} <span class="text-[9px] font-normal text-purple-600">${letter}</span></span>
+                                    <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-purple-600 text-white">${dayData.hours}h</span>
+                                </div>
+                                <div class="text-[10px] font-black text-purple-950 dark:text-purple-200 mt-0.5 leading-tight">${dayData.shift}</div>
+                            `;
+                        } else {
+                            card.className += " border-2 border-blue-600 bg-blue-50/90 dark:bg-blue-950/80 shadow-xs";
+                            card.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <span class="font-black text-xs text-blue-900 dark:text-blue-200">${day} <span class="text-[9px] font-normal text-blue-600">${letter}</span></span>
+                                    <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-blue-600 text-white">${dayData.hours}h</span>
+                                </div>
+                                <div class="text-[10px] font-black text-blue-950 dark:text-blue-100 mt-0.5 leading-tight">${dayData.shift}</div>
+                            `;
+                        }
+                    }
+                } else {
+                    card.className += " shift-off opacity-75 hover:opacity-100";
+                    if (dayType === 'holiday') {
+                        card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">${day} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
+                                <span class="text-[8px] font-semibold text-red-500/60 dark:text-red-400/50">Festivo</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Libre</div>
+                        `;
+                    } else if (dayType === 'weekend') {
+                        card.className += " border border-purple-200/50 dark:border-purple-900/30 bg-purple-50/20 dark:bg-purple-950/20";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-xs text-purple-700/60 dark:text-purple-400/60">${day} <span class="text-[9px] font-normal text-purple-400/50">${letter}</span></span>
+                            </div>
+                            <div class="text-[10px] text-purple-400/60 dark:text-purple-500/60 font-medium mt-0.5">Libre</div>
+                        `;
+                    } else {
+                        card.className += " border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-xs text-slate-600 dark:text-slate-300">${day} <span class="text-[9px] font-normal text-slate-400">${letter}</span></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Libre</div>
+                        `;
+                    }
+                }
+
+                grid.appendChild(card);
+            }
+
+            const totalComputedHours = workedHoursSum + (totalVacationDays * 5.23);
+            const totalHoursFormatted = Math.round(totalComputedHours * 100) / 100;
+
+            document.getElementById('statWorkedHours').textContent = `${totalHoursFormatted}h`;
+
+            let extraHours = totalComputedHours > 162 ? (totalComputedHours - 162) : 0;
+            let extraHoursFormatted = Math.round(extraHours * 100) / 100;
+            document.getElementById('statExtraHours').textContent = `${extraHoursFormatted}h`;
+
+            document.getElementById('statVacationDays').textContent = `${totalVacationDays}d`;
+
+            const upperWorker = (selectedWorker || '').toUpperCase();
+            const isRefuerzo = upperWorker.includes('REFUERZO') || selectedWorker.includes('?');
+
+            const extraHoursCard = document.getElementById('statExtraHoursCard');
+            const vacationDaysCard = document.getElementById('statVacationDaysCard');
+            const annualVacationCard = document.getElementById('statAnnualVacationCard');
+
+            if (isRefuerzo) {
+                if (extraHoursCard) extraHoursCard.classList.add('hidden');
+                if (vacationDaysCard) vacationDaysCard.classList.add('hidden');
+                if (annualVacationCard) annualVacationCard.classList.add('hidden');
+            } else {
+                if (extraHoursCard) extraHoursCard.classList.remove('hidden');
+                if (vacationDaysCard) vacationDaysCard.classList.remove('hidden');
+                if (annualVacationCard) annualVacationCard.classList.remove('hidden');
+
+                let annualQuota = upperWorker.includes('JOSE LUIS') ? 12 : 31;
+                let annualVacationTaken = 0;
+                const targetWorkerNorm = (selectedWorker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                
+                scheduleData.forEach(item => {
+                    const itemWorkerNorm = (item.worker || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+                    if (itemWorkerNorm === targetWorkerNorm) {
+                        for (let d in item.days) {
+                            if (item.days[d] && item.days[d].isVacation) {
+                                annualVacationTaken++;
+                            }
+                        }
+                    }
+                });
+
+                let annualVacationRemaining = Math.max(0, annualQuota - annualVacationTaken);
+                document.getElementById('statAnnualVacation').textContent = `${annualVacationTaken} / ${annualQuota}`;
+                document.getElementById('statAnnualVacationSub').textContent = `Faltan ${annualVacationRemaining}d por solicitar`;
+            }
+
+            document.getElementById('statServiceDays').textContent = `${totalServiceDays}`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function loadFromGoogleSheets(url) {
+            Papa.parse(url, {
+                download: true,
+                header: false,
+                skipEmptyLines: false,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCustomCSV(results.data);
+                    }
+                },
+                error: function(err) {
+                    console.log('Error reading live CSV, using local backup');
+                }
+            });
+        }
+
+        function parseCustomCSV(data) {
+            if (!data || data.length === 0) return;
+
+            const monthMap = {
+                'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4, 'MAYO': 5, 'JUNIO': 6,
+                'JULIO': 7, 'AGOSTO': 8, 'SEPTIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12
+            };
+
+            const parsedSchedule = [];
+            let currentMonth = 0;
+            let i = 0;
+
+            while (i < data.length) {
+                let row = data[i];
+                if (!row || row.length === 0) { i++; continue; }
+
+                let cell0 = (row[0] || '').toString().trim();
+                let upperCell0 = cell0.toUpperCase();
+
+                let foundMonth = 0;
+                for (let mName in monthMap) {
+                    if (upperCell0.includes(mName)) {
+                        foundMonth = monthMap[mName];
+                        break;
+                    }
+                }
+
+                if (foundMonth > 0) {
+                    currentMonth = foundMonth;
+                    i++;
+                    continue;
+                }
+
+                let isWorkerRow = false;
+                if (currentMonth > 0 && cell0) {
+                    if (!cell0.startsWith('20:') && !cell0.startsWith('22:') && !cell0.startsWith('8:') &&
+                        !/^\d+$/.test(cell0) && !['L','M','X','J','V','S','D','H','N','VACA','VACACIONES'].includes(upperCell0) &&
+                        !upperCell0.includes('CAMF')) {
+                        let restNonEmpty = row.slice(1, 20).filter(c => (c || '').toString().trim() !== '');
+                        if (restNonEmpty.length <= 2) {
+                            isWorkerRow = true;
+                        }
+                    }
+                }
+
+                if (isWorkerRow) {
+                    let rawWorkerName = cell0;
+                    let workerName = rawWorkerName;
+                    let upperName = rawWorkerName.toUpperCase();
+
+                    if (upperName.includes('JOSE LUIS')) workerName = 'JOSE LUIS CHAVERO';
+                    else if (upperName.includes('DAVID')) workerName = 'DAVID GUIJARRO';
+                    else if (upperName.includes('JUAN GABRIEL')) workerName = 'JUAN GABRIEL GARCÍA';
+                    else if (rawWorkerName.includes('?') || rawWorkerName.trim() === '') workerName = 'REFUERZO / COBERTURA';
+
+                    let lineA = (i + 1 < data.length) ? data[i + 1] : [];
+                    let lineB = (i + 2 < data.length) ? data[i + 2] : [];
+
+                    let daysDict = {};
+                    for (let day = 1; day <= 31; day++) {
+                        let valA = (lineA[day - 1] || '').toString().trim();
+                        let valB = (lineB[day - 1] || '').toString().trim();
+
+                        if (valA || valB) {
+                            let isVacation = (valA.toLowerCase() === 'v' || valB.toLowerCase() === 'v' || valA.toLowerCase() === 'vac' || valB.toLowerCase() === 'vac');
+                            if (isVacation) {
+                                daysDict[day] = { shift: 'Vacaciones', hours: 0, isVacation: true };
+                            } else {
+                                let shiftStr = (valA && valB) ? `${valA} - ${valB}` : (valA || valB);
+                                let hours = 12;
+
+                                if ((valA === '20:00' && valB === '8:00') || (valA === '8:00' && valB === '20:00')) {
+                                    hours = 12;
+                                } else if (valA === '22:00' && valB === '8:00') {
+                                    hours = 10;
+                                } else if (valA === '8:00' && valB === '22:00') {
+                                    hours = 14;
+                                } else if (valA === '8:00' && !valB) {
+                                    hours = 8;
+                                } else if (valA === '12' || valB === '12') {
+                                    hours = 12;
+                                } else if (valA === '24' || valB === '24') {
+                                    hours = 24;
+                                } else {
+                                    let parsedFloat = parseFloat(valA.replace(',', '.'));
+                                    if (!isNaN(parsedFloat) && parsedFloat > 0 && parsedFloat <= 24) {
+                                        hours = parsedFloat;
+                                    } else {
+                                        hours = shiftStr.includes('22:00') ? 10 : 12;
+                                    }
+                                }
+                                daysDict[day] = { shift: shiftStr, hours: hours, isVacation: false };
+                            }
+                        }
+                    }
+
+                    parsedSchedule.push({
+                        worker: workerName,
+                        month: currentMonth,
+                        days: daysDict
+                    });
+
+                    i += 3;
+                } else {
+                    i++;
+                }
+            }
+
+            if (parsedSchedule.length > 0) {
+                scheduleData = parsedSchedule;
+                extractWorkersList();
+                renderApp();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('theme_dark', isDark);
+        }
+    </script>
+</body>
+</html>
