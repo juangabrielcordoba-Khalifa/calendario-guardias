@@ -124,7 +124,7 @@
                 <!-- Selector de Mes -->
                 <div class="flex items-center gap-2">
                     <label for="monthSelect" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mes:</label>
-                    <select id="monthSelect" onchange="userHasSelectedMonth = true; renderCurrentView()" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-medium">
+                    <select id="monthSelect" onchange="renderCurrentView()" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-medium">
                         <option value="1">Enero</option>
                         <option value="2">Febrero</option>
                         <option value="3">Marzo</option>
@@ -1356,47 +1356,50 @@
         // Inicialización de la Aplicación
         document.addEventListener('DOMContentLoaded', () => {
             scheduleData = defaultScheduleData;
-            if (currentSheetsUrl) {
-                document.getElementById('sheetsUrlInput').value = currentSheetsUrl;
-                loadFromGoogleSheets(currentSheetsUrl);
-            } else {
-                initApp();
+            initApp();
+            if (typeof currentSheetsUrl !== 'undefined' && currentSheetsUrl) {
+                if (document.getElementById('sheetsUrlInput')) {
+                    document.getElementById('sheetsUrlInput').value = currentSheetsUrl;
+                }
+                try {
+                    loadFromGoogleSheets(currentSheetsUrl);
+                } catch(e) {
+                    console.log('Offline / local mode');
+                }
             }
         });
 
         
-        var userHasSelectedMonth = false;
-
+        
         function autoSelectAppropriateMonth() {
-            if (window.userHasSelectedMonth) return;
             const monthSelect = document.getElementById('monthSelect');
             if (!monthSelect) return;
 
-            const currentRealMonth = new Date().getMonth() + 1; // 1 - 12
-            const hasCurrentMonthData = scheduleData.some(item => 
-                item.month === currentRealMonth && 
-                item.days && 
-                Object.keys(item.days).length > 0
-            );
+            const now = new Date();
+            const currentYear = now.getFullYear(); // e.g. 2026
+            const currentRealMonth = now.getMonth() + 1; // 1 - 12 (11 para Noviembre)
 
-            if (hasCurrentMonthData) {
-                monthSelect.value = currentRealMonth;
-            } else {
-                const availableMonths = Array.from(new Set(
-                    scheduleData
-                        .filter(item => item.days && Object.keys(item.days).length > 0)
-                        .map(item => item.month)
-                )).sort((a, b) => a - b);
+            let targetMonth = 1; // Por defecto Enero
 
-                if (availableMonths.length > 0) {
-                    monthSelect.value = availableMonths[0];
-                } else {
-                    monthSelect.value = 1;
+            // El cuadrante cargado es del año 2027.
+            // Solo seleccionamos el mes en curso si estamos en el año 2027
+            // Y ese mes tiene guardias/días válidos cargados en scheduleData.
+            if (currentYear === 2027 && typeof scheduleData !== 'undefined' && scheduleData) {
+                const hasCurrentMonthData = scheduleData.some(item => 
+                    parseInt(item.month) === parseInt(currentRealMonth) && 
+                    item.days && 
+                    Object.values(item.days).some(d => d && (d.shift || d.isVacation || d.hours > 0))
+                );
+                if (hasCurrentMonthData) {
+                    targetMonth = currentRealMonth;
                 }
             }
+
+            monthSelect.value = targetMonth.toString();
         }
 
         function initApp() {
+            if (!scheduleData || scheduleData.length === 0) { scheduleData = defaultScheduleData; }
             if (localStorage.getItem('theme_dark') === 'true') {
                 document.body.classList.add('dark');
                 updateDarkModeUI(true);
@@ -1953,8 +1956,9 @@
                 },
                 error: function(err) {
                     console.error(err);
-                    document.getElementById('connectionText').innerHTML = "🟢 Conectado en vista interactiva local (Google Sheets guardado)";
-                    initApp();
+                    if (document.getElementById('connectionText')) {
+                        document.getElementById('connectionText').innerHTML = "🟢 Conectado en vista interactiva local (Google Sheets guardado)";
+                    }
                 }
             });
         }

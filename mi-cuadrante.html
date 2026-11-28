@@ -80,7 +80,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <i data-lucide="calendar" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
-                <select id="monthSelect" onchange="userHasSelectedMonth = true; renderApp()" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm py-1.5 px-3 rounded-xl border-0 focus:ring-2 focus:ring-indigo-500">
+                <select id="monthSelect" onchange="renderApp()" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm py-1.5 px-3 rounded-xl border-0 focus:ring-2 focus:ring-indigo-500">
                     <option value="1">Enero 2027</option>
                     <option value="2">Febrero 2027</option>
                     <option value="3">Marzo 2027</option>
@@ -1232,35 +1232,32 @@
         let currentWorker = '';
 
         
-        var userHasSelectedMonth = false;
-
+        
         function autoSelectAppropriateMonth() {
-            if (window.userHasSelectedMonth) return;
             const monthSelect = document.getElementById('monthSelect');
             if (!monthSelect) return;
 
-            const currentRealMonth = new Date().getMonth() + 1; // 1 - 12
-            const hasCurrentMonthData = scheduleData.some(item => 
-                item.month === currentRealMonth && 
-                item.days && 
-                Object.keys(item.days).length > 0
-            );
+            const now = new Date();
+            const currentYear = now.getFullYear(); // e.g. 2026
+            const currentRealMonth = now.getMonth() + 1; // 1 - 12 (11 para Noviembre)
 
-            if (hasCurrentMonthData) {
-                monthSelect.value = currentRealMonth;
-            } else {
-                const availableMonths = Array.from(new Set(
-                    scheduleData
-                        .filter(item => item.days && Object.keys(item.days).length > 0)
-                        .map(item => item.month)
-                )).sort((a, b) => a - b);
+            let targetMonth = 1; // Por defecto Enero
 
-                if (availableMonths.length > 0) {
-                    monthSelect.value = availableMonths[0];
-                } else {
-                    monthSelect.value = 1;
+            // El cuadrante cargado es del año 2027.
+            // Solo seleccionamos el mes en curso si estamos en el año 2027
+            // Y ese mes tiene guardias/días válidos cargados en scheduleData.
+            if (currentYear === 2027 && typeof scheduleData !== 'undefined' && scheduleData) {
+                const hasCurrentMonthData = scheduleData.some(item => 
+                    parseInt(item.month) === parseInt(currentRealMonth) && 
+                    item.days && 
+                    Object.values(item.days).some(d => d && (d.shift || d.isVacation || d.hours > 0))
+                );
+                if (hasCurrentMonthData) {
+                    targetMonth = currentRealMonth;
                 }
             }
+
+            monthSelect.value = targetMonth.toString();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1661,7 +1658,6 @@
             if (parsedSchedule.length > 0) {
                 scheduleData = parsedSchedule;
                 extractWorkersList();
-                autoSelectAppropriateMonth();
                 renderApp();
             }
         }
